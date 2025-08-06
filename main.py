@@ -482,8 +482,8 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import numpy as np
 
-st.set_page_config(page_title="AI Prediction Dashboard", layout="wide")
-st.title("📊 AI Prediction Dashboard")
+st.set_page_config(page_title="Machine Learning projects", layout="wide")
+st.title("📊 Machine Learning projects")
 
 # Main Tabs
 tab1, tab2, tab3, tab4 = st.tabs([
