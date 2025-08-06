@@ -498,7 +498,7 @@ with tab1:
     subtab1, subtab2, subtab3 = st.tabs(["Model & Visualizations", "Whole Dataset", "Test Data"])
 
     # Load CSV from GitHub raw link (replace with your actual link)
-    csv_url = "https://raw.githubusercontent.com/Rasheeq28/Machine-Learning-Projects/main/StudentPerformanceFactors.csv"
+    csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
     df = pd.read_csv(csv_url)
 
     # ---------- Sub-tab 1: Model & Visualizations ----------
