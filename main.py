@@ -579,10 +579,12 @@ with tab1:
 
     # ---------- Sub-tab 3: Test Data ----------
     with subtab3:
-        st.subheader("🧪 Test Dataset (20% Split)")
+        st.subheader("🧪 Test Dataset (20% Split) with Predictions")
         test_df = X_test.copy()
         test_df['Actual_Exam_Score'] = y_test.values
+        test_df['Predicted_Exam_Score'] = y_pred  # add predicted values column
         st.dataframe(test_df, use_container_width=True)
+
 
 
 
