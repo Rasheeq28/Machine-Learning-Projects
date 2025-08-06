@@ -288,7 +288,6 @@
 # else:
 #     st.info("👆 Please upload your `StudentPerformanceFactors.csv` file to continue.")
 #
-
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -300,8 +299,9 @@ import numpy as np
 st.title("📊 Student Exam Score Predictor")
 st.write("Predict exam scores based on **Hours Studied** using Linear Regression.")
 
-# Load CSV directly
-df = pd.read_csv("StudentPerformanceFactors.csv")
+# Load CSV from online URL
+csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
+df = pd.read_csv(csv_url)
 
 # Clean data
 df_clean = df.dropna()[['Hours_Studied', 'Exam_Score']]
@@ -364,4 +364,3 @@ st.write(f"**Mean Squared Error (MSE):** {mse:.2f}")
 st.write(f"**Root Mean Squared Error (RMSE):** {rmse:.2f}")
 st.write(f"**R² Score:** {r2:.2f}")
 st.write(f"**Regression Equation:** `Exam_Score = {model.intercept_:.2f} + {model.coef_[0]:.2f} * Hours_Studied`")
-
