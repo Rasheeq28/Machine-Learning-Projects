@@ -473,7 +473,7 @@
 #     st.info("This section will display sales forecasting results. (Coming soon!)")
 
 
-
+#
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -498,7 +498,7 @@ with tab1:
     subtab1, subtab2 = st.tabs(["Model & Visualizations", "Whole Dataset"])
 
     # Load CSV from URL (replace with your hosted CSV link)
-    csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
+    csv_url = "https://raw.githubusercontent.com/YourUsername/datasets/main/StudentPerformanceFactors.csv"
     df = pd.read_csv(csv_url)
 
     # ---------- Sub-tab 1: Model & Visualizations ----------
@@ -506,8 +506,12 @@ with tab1:
         st.subheader("🎓 Student Exam Score Predictor")
         st.write("Predict exam scores based on **Hours Studied** using Linear Regression.")
 
-        # Clean data
+        # Dataset cleaning
         df_clean = df.dropna()[['Hours_Studied', 'Exam_Score']]
+
+        # Display dataset info
+        st.write(f"**📄 Actual Dataset Row Count:** {len(df)}")
+        st.write(f"**🧹 Cleaned Dataset Row Count:** {len(df_clean)}")
 
         # Split data
         X = df_clean[['Hours_Studied']]
@@ -573,32 +577,7 @@ with tab1:
         st.subheader("📂 Whole Dataset")
         st.dataframe(df, use_container_width=True)
 
-# ================================= TAB 2 =================================
-with tab2:
-    subtab1, subtab2 = st.tabs(["Model & Visualizations", "Whole Dataset"])
-    with subtab1:
-        st.subheader("🛍 Customer Segmentation")
-        st.info("This section will display customer segmentation insights. (Coming soon!)")
-    with subtab2:
-        st.subheader("📂 Whole Dataset")
-        st.info("Dataset for customer segmentation will appear here.")
 
-# ================================= TAB 3 =================================
-with tab3:
-    subtab1, subtab2 = st.tabs(["Model & Visualizations", "Whole Dataset"])
-    with subtab1:
-        st.subheader("🏦 Loan Approval Prediction")
-        st.info("This section will display loan approval predictions. (Coming soon!)")
-    with subtab2:
-        st.subheader("📂 Whole Dataset")
-        st.info("Dataset for loan prediction will appear here.")
 
-# ================================= TAB 4 =================================
-with tab4:
-    subtab1, subtab2 = st.tabs(["Model & Visualizations", "Whole Dataset"])
-    with subtab1:
-        st.subheader("📈 Sales Forecasting")
-        st.info("This section will display sales forecasting results. (Coming soon!)")
-    with subtab2:
-        st.subheader("📂 Whole Dataset")
-        st.info("Dataset for sales forecasting will appear here.")
+
+
