@@ -495,10 +495,10 @@ tab1, tab2, tab3, tab4 = st.tabs([
 
 # ================================= TAB 1 =================================
 with tab1:
-    subtab1, subtab2 = st.tabs(["Model & Visualizations", "Whole Dataset"])
+    subtab1, subtab2, subtab3 = st.tabs(["Model & Visualizations", "Whole Dataset", "Test Data"])
 
-    # Load CSV from URL (replace with your hosted CSV link)
-    csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
+    # Load CSV from GitHub raw link (replace with your actual link)
+    csv_url = "https://raw.githubusercontent.com/Rasheeq28/Machine-Learning-Projects/main/StudentPerformanceFactors.csv"
     df = pd.read_csv(csv_url)
 
     # ---------- Sub-tab 1: Model & Visualizations ----------
@@ -509,7 +509,7 @@ with tab1:
         # Dataset cleaning
         df_clean = df.dropna()[['Hours_Studied', 'Exam_Score']]
 
-        # Display dataset info
+        # Display row counts
         st.write(f"**📄 Actual Dataset Row Count:** {len(df)}")
         st.write(f"**🧹 Cleaned Dataset Row Count:** {len(df_clean)}")
 
@@ -538,7 +538,7 @@ with tab1:
         ax1.legend()
         st.pyplot(fig1)
 
-        # Plot 2: Predicted vs Actual (Perfect Fit Line)
+        # Plot 2: Predicted vs Actual
         fig2, ax2 = plt.subplots()
         ax2.scatter(y_test, y_pred, color='blue', alpha=0.6)
         ax2.plot([y_test.min(), y_test.max()],
@@ -576,6 +576,14 @@ with tab1:
     with subtab2:
         st.subheader("📂 Whole Dataset")
         st.dataframe(df, use_container_width=True)
+
+    # ---------- Sub-tab 3: Test Data ----------
+    with subtab3:
+        st.subheader("🧪 Test Dataset (20% Split)")
+        test_df = X_test.copy()
+        test_df['Actual_Exam_Score'] = y_test.values
+        st.dataframe(test_df, use_container_width=True)
+
 
 
 
