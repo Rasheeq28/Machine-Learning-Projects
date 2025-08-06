@@ -220,7 +220,7 @@ st.title("📊 Student Exam Score Predictor")
 st.write("Predict exam scores based on **Hours Studied** using Linear Regression.")
 
 # Upload CSV
-uploaded_file = st.file_uploader("Upload StudentPerformanceFactors.csv", type=["csv"])
+uploaded_file = st.file_uploader("StudentPerformanceFactors", type=["csv"])
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
 
