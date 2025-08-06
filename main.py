@@ -365,6 +365,114 @@
 # st.write(f"**R² Score:** {r2:.2f}")
 # st.write(f"**Regression Equation:** `Exam_Score = {model.intercept_:.2f} + {model.coef_[0]:.2f} * Hours_Studied`")
 
+#
+# import streamlit as st
+# import pandas as pd
+# import matplotlib.pyplot as plt
+# from sklearn.model_selection import train_test_split
+# from sklearn.linear_model import LinearRegression
+# from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+# import numpy as np
+#
+# st.set_page_config(page_title="AI Prediction Dashboard", layout="wide")
+#
+# st.title("📊 AI Prediction Dashboard")
+#
+# # Create tabs
+# tab1, tab2, tab3, tab4 = st.tabs([
+#     "Student Score Predictor",
+#     "Customer Segmentation",
+#     "Loan Approval Prediction",
+#     "Sales Forecasting"
+# ])
+#
+# # ===================== TAB 1: Student Score Predictor =====================
+# with tab1:
+#     st.subheader("🎓 Student Exam Score Predictor")
+#     st.write("Predict exam scores based on **Hours Studied** using Linear Regression.")
+#
+#     # Load CSV from URL
+#     csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
+#     df = pd.read_csv(csv_url)
+#
+#     # Clean data
+#     df_clean = df.dropna()[['Hours_Studied', 'Exam_Score']]
+#
+#     # Split data
+#     X = df_clean[['Hours_Studied']]
+#     y = df_clean['Exam_Score']
+#     X_train, X_test, y_train, y_test = train_test_split(
+#         X, y, test_size=0.2, random_state=42
+#     )
+#
+#     # Train model
+#     model = LinearRegression()
+#     model.fit(X_train, y_train)
+#     y_pred = model.predict(X_test)
+#
+#     # Plot 1: Regression Line
+#     fig1, ax1 = plt.subplots()
+#     ax1.scatter(X, y, color='blue', alpha=0.5, label='Actual Data')
+#     x_line = np.linspace(X.min(), X.max(), 100)
+#     x_line_df = pd.DataFrame(x_line, columns=['Hours_Studied'])
+#     y_line = model.predict(x_line_df)
+#     ax1.plot(x_line, y_line, color='red', linewidth=2, label='Regression Line')
+#     ax1.set_title('Hours Studied vs Exam Score with Regression Line')
+#     ax1.set_xlabel('Hours Studied (per week)')
+#     ax1.set_ylabel('Exam Score')
+#     ax1.legend()
+#     st.pyplot(fig1)
+#
+#     # Plot 2: Predicted vs Actual (Perfect Fit Line)
+#     fig2, ax2 = plt.subplots()
+#     ax2.scatter(y_test, y_pred, color='blue', alpha=0.6)
+#     ax2.plot([y_test.min(), y_test.max()],
+#              [y_test.min(), y_test.max()],
+#              color='red', linewidth=2)
+#     ax2.set_xlabel("Actual Exam Score")
+#     ax2.set_ylabel("Predicted Exam Score")
+#     ax2.set_title("Actual vs Predicted Exam Scores")
+#     st.pyplot(fig2)
+#
+#     # Plot 3: Test Data (Actual vs Predicted)
+#     fig3, ax3 = plt.subplots()
+#     ax3.scatter(X_test, y_test, color='blue', label='Actual')
+#     ax3.scatter(X_test, y_pred, color='red', alpha=0.6, label='Predicted')
+#     ax3.set_xlabel('Hours Studied')
+#     ax3.set_ylabel('Exam Score')
+#     ax3.set_title('Actual vs Predicted Exam Scores')
+#     ax3.legend()
+#     st.pyplot(fig3)
+#
+#     # Model Evaluation
+#     mae = mean_absolute_error(y_test, y_pred)
+#     mse = mean_squared_error(y_test, y_pred)
+#     rmse = np.sqrt(mse)
+#     r2 = r2_score(y_test, y_pred)
+#
+#     st.subheader("📈 Model Evaluation Metrics")
+#     st.write(f"**Mean Absolute Error (MAE):** {mae:.2f}")
+#     st.write(f"**Mean Squared Error (MSE):** {mse:.2f}")
+#     st.write(f"**Root Mean Squared Error (RMSE):** {rmse:.2f}")
+#     st.write(f"**R² Score:** {r2:.2f}")
+#     st.write(f"**Regression Equation:** `Exam_Score = {model.intercept_:.2f} + {model.coef_[0]:.2f} * Hours_Studied`")
+#
+# # ===================== TAB 2: Customer Segmentation =====================
+# with tab2:
+#     st.subheader("🛍 Customer Segmentation")
+#     st.info("This section will display customer segmentation insights. (Coming soon!)")
+#
+# # ===================== TAB 3: Loan Approval Prediction =====================
+# with tab3:
+#     st.subheader("🏦 Loan Approval Prediction")
+#     st.info("This section will display loan approval predictions. (Coming soon!)")
+#
+# # ===================== TAB 4: Sales Forecasting =====================
+# with tab4:
+#     st.subheader("📈 Sales Forecasting")
+#     st.info("This section will display sales forecasting results. (Coming soon!)")
+
+
 
 import streamlit as st
 import pandas as pd
@@ -375,10 +483,9 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import numpy as np
 
 st.set_page_config(page_title="AI Prediction Dashboard", layout="wide")
-
 st.title("📊 AI Prediction Dashboard")
 
-# Create tabs
+# Main Tabs
 tab1, tab2, tab3, tab4 = st.tabs([
     "Student Score Predictor",
     "Customer Segmentation",
@@ -386,88 +493,112 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "Sales Forecasting"
 ])
 
-# ===================== TAB 1: Student Score Predictor =====================
+# ================================= TAB 1 =================================
 with tab1:
-    st.subheader("🎓 Student Exam Score Predictor")
-    st.write("Predict exam scores based on **Hours Studied** using Linear Regression.")
+    subtab1, subtab2 = st.tabs(["Model & Visualizations", "Whole Dataset"])
 
-    # Load CSV from URL
+    # Load CSV from URL (replace with your hosted CSV link)
     csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
     df = pd.read_csv(csv_url)
 
-    # Clean data
-    df_clean = df.dropna()[['Hours_Studied', 'Exam_Score']]
+    # ---------- Sub-tab 1: Model & Visualizations ----------
+    with subtab1:
+        st.subheader("🎓 Student Exam Score Predictor")
+        st.write("Predict exam scores based on **Hours Studied** using Linear Regression.")
 
-    # Split data
-    X = df_clean[['Hours_Studied']]
-    y = df_clean['Exam_Score']
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
+        # Clean data
+        df_clean = df.dropna()[['Hours_Studied', 'Exam_Score']]
 
-    # Train model
-    model = LinearRegression()
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
+        # Split data
+        X = df_clean[['Hours_Studied']]
+        y = df_clean['Exam_Score']
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42
+        )
 
-    # Plot 1: Regression Line
-    fig1, ax1 = plt.subplots()
-    ax1.scatter(X, y, color='blue', alpha=0.5, label='Actual Data')
-    x_line = np.linspace(X.min(), X.max(), 100)
-    x_line_df = pd.DataFrame(x_line, columns=['Hours_Studied'])
-    y_line = model.predict(x_line_df)
-    ax1.plot(x_line, y_line, color='red', linewidth=2, label='Regression Line')
-    ax1.set_title('Hours Studied vs Exam Score with Regression Line')
-    ax1.set_xlabel('Hours Studied (per week)')
-    ax1.set_ylabel('Exam Score')
-    ax1.legend()
-    st.pyplot(fig1)
+        # Train model
+        model = LinearRegression()
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
 
-    # Plot 2: Predicted vs Actual (Perfect Fit Line)
-    fig2, ax2 = plt.subplots()
-    ax2.scatter(y_test, y_pred, color='blue', alpha=0.6)
-    ax2.plot([y_test.min(), y_test.max()],
-             [y_test.min(), y_test.max()],
-             color='red', linewidth=2)
-    ax2.set_xlabel("Actual Exam Score")
-    ax2.set_ylabel("Predicted Exam Score")
-    ax2.set_title("Actual vs Predicted Exam Scores")
-    st.pyplot(fig2)
+        # Plot 1: Regression Line
+        fig1, ax1 = plt.subplots()
+        ax1.scatter(X, y, color='blue', alpha=0.5, label='Actual Data')
+        x_line = np.linspace(X.min(), X.max(), 100)
+        x_line_df = pd.DataFrame(x_line, columns=['Hours_Studied'])
+        y_line = model.predict(x_line_df)
+        ax1.plot(x_line, y_line, color='red', linewidth=2, label='Regression Line')
+        ax1.set_title('Hours Studied vs Exam Score with Regression Line')
+        ax1.set_xlabel('Hours Studied (per week)')
+        ax1.set_ylabel('Exam Score')
+        ax1.legend()
+        st.pyplot(fig1)
 
-    # Plot 3: Test Data (Actual vs Predicted)
-    fig3, ax3 = plt.subplots()
-    ax3.scatter(X_test, y_test, color='blue', label='Actual')
-    ax3.scatter(X_test, y_pred, color='red', alpha=0.6, label='Predicted')
-    ax3.set_xlabel('Hours Studied')
-    ax3.set_ylabel('Exam Score')
-    ax3.set_title('Actual vs Predicted Exam Scores')
-    ax3.legend()
-    st.pyplot(fig3)
+        # Plot 2: Predicted vs Actual (Perfect Fit Line)
+        fig2, ax2 = plt.subplots()
+        ax2.scatter(y_test, y_pred, color='blue', alpha=0.6)
+        ax2.plot([y_test.min(), y_test.max()],
+                 [y_test.min(), y_test.max()],
+                 color='red', linewidth=2)
+        ax2.set_xlabel("Actual Exam Score")
+        ax2.set_ylabel("Predicted Exam Score")
+        ax2.set_title("Actual vs Predicted Exam Scores")
+        st.pyplot(fig2)
 
-    # Model Evaluation
-    mae = mean_absolute_error(y_test, y_pred)
-    mse = mean_squared_error(y_test, y_pred)
-    rmse = np.sqrt(mse)
-    r2 = r2_score(y_test, y_pred)
+        # Plot 3: Test Data (Actual vs Predicted)
+        fig3, ax3 = plt.subplots()
+        ax3.scatter(X_test, y_test, color='blue', label='Actual')
+        ax3.scatter(X_test, y_pred, color='red', alpha=0.6, label='Predicted')
+        ax3.set_xlabel('Hours Studied')
+        ax3.set_ylabel('Exam Score')
+        ax3.set_title('Actual vs Predicted Exam Scores')
+        ax3.legend()
+        st.pyplot(fig3)
 
-    st.subheader("📈 Model Evaluation Metrics")
-    st.write(f"**Mean Absolute Error (MAE):** {mae:.2f}")
-    st.write(f"**Mean Squared Error (MSE):** {mse:.2f}")
-    st.write(f"**Root Mean Squared Error (RMSE):** {rmse:.2f}")
-    st.write(f"**R² Score:** {r2:.2f}")
-    st.write(f"**Regression Equation:** `Exam_Score = {model.intercept_:.2f} + {model.coef_[0]:.2f} * Hours_Studied`")
+        # Model Evaluation
+        mae = mean_absolute_error(y_test, y_pred)
+        mse = mean_squared_error(y_test, y_pred)
+        rmse = np.sqrt(mse)
+        r2 = r2_score(y_test, y_pred)
 
-# ===================== TAB 2: Customer Segmentation =====================
+        st.subheader("📈 Model Evaluation Metrics")
+        st.write(f"**Mean Absolute Error (MAE):** {mae:.2f}")
+        st.write(f"**Mean Squared Error (MSE):** {mse:.2f}")
+        st.write(f"**Root Mean Squared Error (RMSE):** {rmse:.2f}")
+        st.write(f"**R² Score:** {r2:.2f}")
+        st.write(f"**Regression Equation:** `Exam_Score = {model.intercept_:.2f} + {model.coef_[0]:.2f} * Hours_Studied`")
+
+    # ---------- Sub-tab 2: Whole Dataset ----------
+    with subtab2:
+        st.subheader("📂 Whole Dataset")
+        st.dataframe(df, use_container_width=True)
+
+# ================================= TAB 2 =================================
 with tab2:
-    st.subheader("🛍 Customer Segmentation")
-    st.info("This section will display customer segmentation insights. (Coming soon!)")
+    subtab1, subtab2 = st.tabs(["Model & Visualizations", "Whole Dataset"])
+    with subtab1:
+        st.subheader("🛍 Customer Segmentation")
+        st.info("This section will display customer segmentation insights. (Coming soon!)")
+    with subtab2:
+        st.subheader("📂 Whole Dataset")
+        st.info("Dataset for customer segmentation will appear here.")
 
-# ===================== TAB 3: Loan Approval Prediction =====================
+# ================================= TAB 3 =================================
 with tab3:
-    st.subheader("🏦 Loan Approval Prediction")
-    st.info("This section will display loan approval predictions. (Coming soon!)")
+    subtab1, subtab2 = st.tabs(["Model & Visualizations", "Whole Dataset"])
+    with subtab1:
+        st.subheader("🏦 Loan Approval Prediction")
+        st.info("This section will display loan approval predictions. (Coming soon!)")
+    with subtab2:
+        st.subheader("📂 Whole Dataset")
+        st.info("Dataset for loan prediction will appear here.")
 
-# ===================== TAB 4: Sales Forecasting =====================
+# ================================= TAB 4 =================================
 with tab4:
-    st.subheader("📈 Sales Forecasting")
-    st.info("This section will display sales forecasting results. (Coming soon!)")
+    subtab1, subtab2 = st.tabs(["Model & Visualizations", "Whole Dataset"])
+    with subtab1:
+        st.subheader("📈 Sales Forecasting")
+        st.info("This section will display sales forecasting results. (Coming soon!)")
+    with subtab2:
+        st.subheader("📂 Whole Dataset")
+        st.info("Dataset for sales forecasting will appear here.")
