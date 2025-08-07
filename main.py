@@ -1559,12 +1559,25 @@ with subtab2:
         st.dataframe(df, use_container_width=True)
 
 # ========================== TEST DATA TAB ==========================
+# ========================== TEST DATA TAB ==========================
 with subtab3:
     st.subheader("🧪 Test Data with Predictions")
-    test_data_df = X_test_simple.copy()
-    test_data_df['Actual'] = y_test.values
-    test_data_df['Predicted (Simple Linear)'] = y_pred_simple
-    test_data_df['Predicted (Multi-Feature Linear)'] = y_pred_multi
-    test_data_df['Predicted (Simple Polynomial)'] = y_pred_poly_simple
-    test_data_df['Predicted (Multi-Feature Polynomial)'] = y_pred_poly_multi
-    st.dataframe(test_data_df.reset_index(drop=True), use_container_width=True)
+
+    # Merge all features from X_test_multi for full context
+    test_data_full = X_test_multi.copy()
+    test_data_full['Hours_Studied (Simple)'] = X_test_simple['Hours_Studied'].values  # Redundant but clear
+    test_data_full['Actual Exam Score'] = y_test.values
+    test_data_full['Predicted (Simple Linear)'] = y_pred_simple
+    test_data_full['Predicted (Multi-Feature Linear)'] = y_pred_multi
+    test_data_full['Predicted (Simple Polynomial)'] = y_pred_poly_simple
+    test_data_full['Predicted (Multi-Feature Polynomial)'] = y_pred_poly_multi
+
+    # Reorder columns for readability
+    ordered_cols = ['Hours_Studied (Simple)', 'Attendance', 'Previous_Scores', 'Sleep_Hours',
+                    'Tutoring_Sessions', 'Physical_Activity', 'Actual Exam Score',
+                    'Predicted (Simple Linear)', 'Predicted (Multi-Feature Linear)',
+                    'Predicted (Simple Polynomial)', 'Predicted (Multi-Feature Polynomial)']
+    test_data_full = test_data_full[ordered_cols]
+
+    st.dataframe(test_data_full.reset_index(drop=True), use_container_width=True)
+
