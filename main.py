@@ -1598,6 +1598,12 @@ with tab2:
     )
     st.plotly_chart(fig_elbow, use_container_width=True)
 
+    st.write("""
+    **Interpretation:**  
+    The elbow plot shows the inertia decreasing as K increases. The 'elbow' point (where inertia reduction slows) suggests the optimal number of clusters.  
+    Here, K=5 is chosen to balance complexity and fit. Choosing this helps capture meaningful customer groups without overfitting.
+    """)
+
     # Choose optimal K (e.g. 5)
     optimal_k = 5
     kmeans = KMeans(n_clusters=optimal_k, random_state=42, n_init=10)
@@ -1615,6 +1621,13 @@ with tab2:
     )
     st.plotly_chart(fig_cluster, use_container_width=True)
 
+    st.write("""
+    **Cluster Insights:**  
+    - Each color represents a distinct customer segment.  
+    - Segments differentiate customers by income and spending behavior.  
+    - Businesses can tailor marketing strategies based on these clusters, e.g., target high-spending, high-income customers with premium offers.
+    """)
+
     # DBSCAN clustering
     dbscan = DBSCAN(eps=0.6, min_samples=5)
     df_customers['DBSCAN_Cluster'] = dbscan.fit_predict(df_scaled)
@@ -1630,15 +1643,36 @@ with tab2:
     )
     st.plotly_chart(fig_dbscan, use_container_width=True)
 
+    st.write("""
+    **DBSCAN Analysis:**  
+    - DBSCAN identifies clusters based on density and labels some points as outliers (-1).  
+    - This method can detect irregular shaped clusters and noise.  
+    - Outliers might represent niche customer groups or anomalies worth special attention.
+    """)
+
     # Analyze average spending per cluster (KMeans)
     st.write("### 🧾 Average Spending per Cluster (KMeans)")
     cluster_summary = df_customers.groupby('Cluster')[['Annual Income (k$)', 'Spending Score (1-100)']].mean().round(2)
     st.dataframe(cluster_summary)
+
+    st.write("""
+    **Cluster Averages Interpretation:**  
+    - Understand average income and spending score per segment.  
+    - Identify high-value segments with high income and spending for focused retention.  
+    - Low spending segments may benefit from targeted promotions or engagement campaigns.
+    """)
 
     # Show cluster sizes
     st.write("### 📊 Cluster Sizes")
     cluster_counts = df_customers['Cluster'].value_counts().sort_index()
     st.bar_chart(cluster_counts)
 
+    st.write("""
+    **Cluster Size Insights:**  
+    - Shows the number of customers in each segment.  
+    - Larger clusters indicate broad customer bases; smaller clusters could be niche groups.  
+    - Resources and marketing budgets can be allocated proportionally.
+    """)
+
     st.markdown("---")
-    st.write("🔄 **Note:** Features 'Annual Income' and 'Spending Score' were standardized before clustering.")
+    st.write("🔄 **Note:** Features 'Annual Income' and 'Spending Score' were standardized before clustering to give equal importance to both.")
