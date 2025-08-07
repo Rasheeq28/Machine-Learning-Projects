@@ -619,161 +619,286 @@
 #             f"**Regression Equation:** `Exam_Score = {model.intercept_:.2f} + {model.coef_[0]:.2f} * Hours_Studied`")
 #
 
+#
+# import streamlit as st
+# import pandas as pd
+# import matplotlib.pyplot as plt
+# from sklearn.model_selection import train_test_split
+# from sklearn.linear_model import LinearRegression
+# from sklearn.preprocessing import PolynomialFeatures
+# from sklearn.pipeline import make_pipeline
+# from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+# import numpy as np
+# import plotly.express as px
+# import plotly.graph_objects as go
+#
+# st.set_page_config(page_title="Machine Learning projects", layout="wide")
+# st.title("📊 Machine Learning projects")
+#
+# # Main Tabs
+# tab1, tab2, tab3, tab4 = st.tabs([
+#     "Student Score Predictor",
+#     "Customer Segmentation",
+#     "Loan Approval Prediction",
+#     "Sales Forecasting"
+# ])
+#
+# # ================================= TAB 1 =================================
+# with tab1:
+#     subtab_main, subtab2, subtab3 = st.tabs(["Model & Visualizations", "Whole Dataset", "Test Data"])
+#
+#     # Load dataset
+#     csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
+#     df = pd.read_csv(csv_url)
+#
+#     # Clean data
+#     df_clean = df.dropna()[['Hours_Studied', 'Exam_Score']]
+#     X = df_clean[['Hours_Studied']]
+#     y = df_clean['Exam_Score']
+#     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+#
+#     # Sub-tabs: Linear | Polynomial
+#     with subtab_main:
+#         model_tab1, model_tab2 = st.tabs(["Linear", "Polynomial"])
+#
+#         # ========================== LINEAR ==========================
+#         with model_tab1:
+#             st.subheader("🔵 Linear Regression Model")
+#
+#             # Train linear model
+#             linear_model = LinearRegression()
+#             linear_model.fit(X_train, y_train)
+#             y_pred_linear = linear_model.predict(X_test)
+#
+#             # Plot 1: Regression Line
+#             x_line = np.linspace(X.min(), X.max(), 100).reshape(-1, 1)
+#             y_line = linear_model.predict(x_line)
+#             fig1 = go.Figure()
+#             fig1.add_trace(go.Scatter(x=df_clean['Hours_Studied'], y=df_clean['Exam_Score'],
+#                                       mode='markers', name='Actual Data', marker=dict(color='blue')))
+#             fig1.add_trace(go.Scatter(x=x_line.flatten(), y=y_line,
+#                                       mode='lines', name='Regression Line', line=dict(color='red')))
+#             fig1.update_layout(title='📘 Hours Studied vs Exam Score (Linear)',
+#                                xaxis_title='Hours Studied', yaxis_title='Exam Score')
+#             st.plotly_chart(fig1, use_container_width=True)
+#
+#             # Plot 2: Actual vs Predicted
+#             fig2 = px.scatter(x=y_test, y=y_pred_linear,
+#                               labels={'x': 'Actual', 'y': 'Predicted'},
+#                               title="🎯 Actual vs Predicted (Linear)")
+#             fig2.add_trace(go.Scatter(x=[y_test.min(), y_test.max()],
+#                                       y=[y_test.min(), y_test.max()],
+#                                       mode='lines', name='Perfect Fit', line=dict(color='red')))
+#             st.plotly_chart(fig2, use_container_width=True)
+#
+#             # Plot 3: Test Data
+#             fig3 = go.Figure()
+#             fig3.add_trace(go.Scatter(x=X_test['Hours_Studied'], y=y_test,
+#                                       mode='markers', name='Actual', marker=dict(color='blue')))
+#             fig3.add_trace(go.Scatter(x=X_test['Hours_Studied'], y=y_pred_linear,
+#                                       mode='markers', name='Predicted', marker=dict(color='red')))
+#             fig3.update_layout(title="🔍 Test Data: Actual vs Predicted (Linear)",
+#                                xaxis_title='Hours Studied', yaxis_title='Exam Score')
+#             st.plotly_chart(fig3, use_container_width=True)
+#
+#             # Evaluation
+#             st.subheader("📈 Linear Regression Metrics")
+#             st.write(f"**MAE:** {mean_absolute_error(y_test, y_pred_linear):.2f}")
+#             st.write(f"**MSE:** {mean_squared_error(y_test, y_pred_linear):.2f}")
+#             st.write(f"**RMSE:** {np.sqrt(mean_squared_error(y_test, y_pred_linear)):.2f}")
+#             st.write(f"**R² Score:** {r2_score(y_test, y_pred_linear):.2f}")
+#             st.write(f"**Equation:** `Exam_Score = {linear_model.intercept_:.2f} + {linear_model.coef_[0]:.2f} * Hours_Studied`")
+#
+#         # ========================== POLYNOMIAL ==========================
+#         with model_tab2:
+#             st.subheader("🟣 Polynomial Regression Model (Degree 2)")
+#
+#             # Polynomial model
+#             poly_model = make_pipeline(PolynomialFeatures(degree=2), LinearRegression())
+#             poly_model.fit(X_train, y_train)
+#             y_pred_poly = poly_model.predict(X_test)
+#
+#             # Plot 1: Polynomial Curve
+#             x_line = np.linspace(X.min(), X.max(), 100).reshape(-1, 1)
+#             y_line = poly_model.predict(x_line)
+#             fig4 = go.Figure()
+#             fig4.add_trace(go.Scatter(x=df_clean['Hours_Studied'], y=df_clean['Exam_Score'],
+#                                       mode='markers', name='Actual Data', marker=dict(color='blue')))
+#             fig4.add_trace(go.Scatter(x=x_line.flatten(), y=y_line,
+#                                       mode='lines', name='Polynomial Curve', line=dict(color='green')))
+#             fig4.update_layout(title='📗 Hours Studied vs Exam Score (Polynomial)',
+#                                xaxis_title='Hours Studied', yaxis_title='Exam Score')
+#             st.plotly_chart(fig4, use_container_width=True)
+#
+#             # Plot 2: Actual vs Predicted
+#             fig5 = px.scatter(x=y_test, y=y_pred_poly,
+#                               labels={'x': 'Actual', 'y': 'Predicted'},
+#                               title="🎯 Actual vs Predicted (Polynomial)")
+#             fig5.add_trace(go.Scatter(x=[y_test.min(), y_test.max()],
+#                                       y=[y_test.min(), y_test.max()],
+#                                       mode='lines', name='Perfect Fit', line=dict(color='red')))
+#             st.plotly_chart(fig5, use_container_width=True)
+#
+#             # Plot 3: Test Data
+#             fig6 = go.Figure()
+#             fig6.add_trace(go.Scatter(x=X_test['Hours_Studied'], y=y_test,
+#                                       mode='markers', name='Actual', marker=dict(color='blue')))
+#             fig6.add_trace(go.Scatter(x=X_test['Hours_Studied'], y=y_pred_poly,
+#                                       mode='markers', name='Predicted', marker=dict(color='green')))
+#             fig6.update_layout(title="🔍 Test Data: Actual vs Predicted (Polynomial)",
+#                                xaxis_title='Hours Studied', yaxis_title='Exam Score')
+#             st.plotly_chart(fig6, use_container_width=True)
+#
+#             # Evaluation
+#             st.subheader("📈 Polynomial Regression Metrics")
+#             st.write(f"**MAE:** {mean_absolute_error(y_test, y_pred_poly):.2f}")
+#             st.write(f"**MSE:** {mean_squared_error(y_test, y_pred_poly):.2f}")
+#             st.write(f"**RMSE:** {np.sqrt(mean_squared_error(y_test, y_pred_poly)):.2f}")
+#             st.write(f"**R² Score:** {r2_score(y_test, y_pred_poly):.2f}")
+#             st.write("**Note:** Polynomial equation is inferred from model pipeline, not directly printed.")
+#
+#     # ========================== WHOLE DATASET TAB ==========================
+#     with subtab2:
+#         st.subheader("📂 Full Dataset (Raw CSV)")
+#         if df.empty:
+#             st.warning("Dataset is empty or not loaded correctly.")
+#         else:
+#             st.dataframe(df, use_container_width=True)
+#
+#     # ========================== TEST DATA TAB ==========================
+#     with subtab3:
+#         st.subheader("🧪 Test Data with Predictions (Linear)")
+#         test_data = X_test.copy()
+#         test_data['Actual'] = y_test.values
+#         test_data['Predicted (Linear)'] = y_pred_linear
+#         test_data['Predicted (Poly)'] = y_pred_poly
+#         st.dataframe(test_data.reset_index(drop=True), use_container_width=True)
+
+
 
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
+import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
-from sklearn.pipeline import make_pipeline
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="Machine Learning projects", layout="wide")
-st.title("📊 Machine Learning projects")
+# Load dataset
+csv_url = "https://raw.githubusercontent.com/Rasheeq28/Machine-Learning-Projects/main/StudentPerformanceFactors.csv"
+df = pd.read_csv(csv_url)
 
-# Main Tabs
-tab1, tab2, tab3, tab4 = st.tabs([
-    "Student Score Predictor",
-    "Customer Segmentation",
-    "Loan Approval Prediction",
-    "Sales Forecasting"
-])
+# Clean dataset
+df_clean = df.dropna()
 
-# ================================= TAB 1 =================================
+# Select feature and target
+X = df_clean[["Hours Studied"]]
+y = df_clean["Performance Index"]
+
+# Train/Test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Linear Regression
+lin_reg = LinearRegression()
+lin_reg.fit(X_train, y_train)
+y_pred_linear = lin_reg.predict(X_test)
+
+# Polynomial Regression
+poly = PolynomialFeatures(degree=2)
+X_poly_train = poly.fit_transform(X_train)
+X_poly_test = poly.transform(X_test)
+
+poly_reg = LinearRegression()
+poly_reg.fit(X_poly_train, y_train)
+y_pred_poly = poly_reg.predict(X_poly_test)
+
+# Add predictions to test DataFrame
+test_df = X_test.copy()
+test_df["Actual"] = y_test.values
+test_df["Predicted"] = y_pred_poly
+
+# Streamlit App
+st.title("Machine Learning Showcase")
+
+tab1, tab2, tab3, tab4 = st.tabs(["Student Score Predictor", "Customer Segmentation", "Loan Approval Prediction", "Sales Forecasting"])
+
 with tab1:
-    subtab_main, subtab2, subtab3 = st.tabs(["Model & Visualizations", "Whole Dataset", "Test Data"])
+    st.header("Student Score Predictor")
 
-    # Load dataset
-    csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
-    df = pd.read_csv(csv_url)
+    subtab1, subtab2, subtab3 = st.tabs(["Whole Dataset", "Model & Visualization", "Test Data"])
 
-    # Clean data
-    df_clean = df.dropna()[['Hours_Studied', 'Exam_Score']]
-    X = df_clean[['Hours_Studied']]
-    y = df_clean['Exam_Score']
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    with subtab1:
+        st.subheader("Whole Dataset")
+        st.write("Raw CSV dataset:")
+        st.dataframe(df)
 
-    # Sub-tabs: Linear | Polynomial
-    with subtab_main:
-        model_tab1, model_tab2 = st.tabs(["Linear", "Polynomial"])
-
-        # ========================== LINEAR ==========================
-        with model_tab1:
-            st.subheader("🔵 Linear Regression Model")
-
-            # Train linear model
-            linear_model = LinearRegression()
-            linear_model.fit(X_train, y_train)
-            y_pred_linear = linear_model.predict(X_test)
-
-            # Plot 1: Regression Line
-            x_line = np.linspace(X.min(), X.max(), 100).reshape(-1, 1)
-            y_line = linear_model.predict(x_line)
-            fig1 = go.Figure()
-            fig1.add_trace(go.Scatter(x=df_clean['Hours_Studied'], y=df_clean['Exam_Score'],
-                                      mode='markers', name='Actual Data', marker=dict(color='blue')))
-            fig1.add_trace(go.Scatter(x=x_line.flatten(), y=y_line,
-                                      mode='lines', name='Regression Line', line=dict(color='red')))
-            fig1.update_layout(title='📘 Hours Studied vs Exam Score (Linear)',
-                               xaxis_title='Hours Studied', yaxis_title='Exam Score')
-            st.plotly_chart(fig1, use_container_width=True)
-
-            # Plot 2: Actual vs Predicted
-            fig2 = px.scatter(x=y_test, y=y_pred_linear,
-                              labels={'x': 'Actual', 'y': 'Predicted'},
-                              title="🎯 Actual vs Predicted (Linear)")
-            fig2.add_trace(go.Scatter(x=[y_test.min(), y_test.max()],
-                                      y=[y_test.min(), y_test.max()],
-                                      mode='lines', name='Perfect Fit', line=dict(color='red')))
-            st.plotly_chart(fig2, use_container_width=True)
-
-            # Plot 3: Test Data
-            fig3 = go.Figure()
-            fig3.add_trace(go.Scatter(x=X_test['Hours_Studied'], y=y_test,
-                                      mode='markers', name='Actual', marker=dict(color='blue')))
-            fig3.add_trace(go.Scatter(x=X_test['Hours_Studied'], y=y_pred_linear,
-                                      mode='markers', name='Predicted', marker=dict(color='red')))
-            fig3.update_layout(title="🔍 Test Data: Actual vs Predicted (Linear)",
-                               xaxis_title='Hours Studied', yaxis_title='Exam Score')
-            st.plotly_chart(fig3, use_container_width=True)
-
-            # Evaluation
-            st.subheader("📈 Linear Regression Metrics")
-            st.write(f"**MAE:** {mean_absolute_error(y_test, y_pred_linear):.2f}")
-            st.write(f"**MSE:** {mean_squared_error(y_test, y_pred_linear):.2f}")
-            st.write(f"**RMSE:** {np.sqrt(mean_squared_error(y_test, y_pred_linear)):.2f}")
-            st.write(f"**R² Score:** {r2_score(y_test, y_pred_linear):.2f}")
-            st.write(f"**Equation:** `Exam_Score = {linear_model.intercept_:.2f} + {linear_model.coef_[0]:.2f} * Hours_Studied`")
-
-        # ========================== POLYNOMIAL ==========================
-        with model_tab2:
-            st.subheader("🟣 Polynomial Regression Model (Degree 2)")
-
-            # Polynomial model
-            poly_model = make_pipeline(PolynomialFeatures(degree=2), LinearRegression())
-            poly_model.fit(X_train, y_train)
-            y_pred_poly = poly_model.predict(X_test)
-
-            # Plot 1: Polynomial Curve
-            x_line = np.linspace(X.min(), X.max(), 100).reshape(-1, 1)
-            y_line = poly_model.predict(x_line)
-            fig4 = go.Figure()
-            fig4.add_trace(go.Scatter(x=df_clean['Hours_Studied'], y=df_clean['Exam_Score'],
-                                      mode='markers', name='Actual Data', marker=dict(color='blue')))
-            fig4.add_trace(go.Scatter(x=x_line.flatten(), y=y_line,
-                                      mode='lines', name='Polynomial Curve', line=dict(color='green')))
-            fig4.update_layout(title='📗 Hours Studied vs Exam Score (Polynomial)',
-                               xaxis_title='Hours Studied', yaxis_title='Exam Score')
-            st.plotly_chart(fig4, use_container_width=True)
-
-            # Plot 2: Actual vs Predicted
-            fig5 = px.scatter(x=y_test, y=y_pred_poly,
-                              labels={'x': 'Actual', 'y': 'Predicted'},
-                              title="🎯 Actual vs Predicted (Polynomial)")
-            fig5.add_trace(go.Scatter(x=[y_test.min(), y_test.max()],
-                                      y=[y_test.min(), y_test.max()],
-                                      mode='lines', name='Perfect Fit', line=dict(color='red')))
-            st.plotly_chart(fig5, use_container_width=True)
-
-            # Plot 3: Test Data
-            fig6 = go.Figure()
-            fig6.add_trace(go.Scatter(x=X_test['Hours_Studied'], y=y_test,
-                                      mode='markers', name='Actual', marker=dict(color='blue')))
-            fig6.add_trace(go.Scatter(x=X_test['Hours_Studied'], y=y_pred_poly,
-                                      mode='markers', name='Predicted', marker=dict(color='green')))
-            fig6.update_layout(title="🔍 Test Data: Actual vs Predicted (Polynomial)",
-                               xaxis_title='Hours Studied', yaxis_title='Exam Score')
-            st.plotly_chart(fig6, use_container_width=True)
-
-            # Evaluation
-            st.subheader("📈 Polynomial Regression Metrics")
-            st.write(f"**MAE:** {mean_absolute_error(y_test, y_pred_poly):.2f}")
-            st.write(f"**MSE:** {mean_squared_error(y_test, y_pred_poly):.2f}")
-            st.write(f"**RMSE:** {np.sqrt(mean_squared_error(y_test, y_pred_poly)):.2f}")
-            st.write(f"**R² Score:** {r2_score(y_test, y_pred_poly):.2f}")
-            st.write("**Note:** Polynomial equation is inferred from model pipeline, not directly printed.")
-
-    # ========================== WHOLE DATASET TAB ==========================
     with subtab2:
-        st.subheader("📂 Full Dataset (Raw CSV)")
-        if df.empty:
-            st.warning("Dataset is empty or not loaded correctly.")
-        else:
-            st.dataframe(df, use_container_width=True)
+        st.subheader("Model and Visualization")
+        st.write(f"**Raw Dataset Rows:** {len(df)}")
+        st.write(f"**Cleaned Dataset Rows (No missing values):** {len(df_clean)}")
 
-    # ========================== TEST DATA TAB ==========================
+        st.markdown("### Regression Metrics")
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("**Linear Regression**")
+            st.write(f"MAE: {mean_absolute_error(y_test, y_pred_linear):.2f}")
+            st.write(f"MSE: {mean_squared_error(y_test, y_pred_linear):.2f}")
+            st.write(f"R²: {r2_score(y_test, y_pred_linear):.2f}")
+
+        with col2:
+            st.markdown("**Polynomial Regression (Degree 2)**")
+            st.write(f"MAE: {mean_absolute_error(y_test, y_pred_poly):.2f}")
+            st.write(f"MSE: {mean_squared_error(y_test, y_pred_poly):.2f}")
+            st.write(f"R²: {r2_score(y_test, y_pred_poly):.2f}")
+
+        # Visualization of model fits
+        st.markdown("### Model Comparison Plot")
+
+        x_range = np.linspace(X.min(), X.max(), 300).reshape(-1, 1)
+        y_linear = lin_reg.predict(x_range)
+        y_poly = poly_reg.predict(poly.transform(x_range))
+
+        fig = go.Figure()
+
+        fig.add_trace(go.Scatter(x=X["Hours Studied"], y=y,
+                                 mode='markers',
+                                 name='Actual Data',
+                                 marker=dict(color='gray')))
+
+        fig.add_trace(go.Scatter(x=x_range.flatten(), y=y_linear,
+                                 mode='lines',
+                                 name='Linear Regression',
+                                 line=dict(color='blue')))
+
+        fig.add_trace(go.Scatter(x=x_range.flatten(), y=y_poly,
+                                 mode='lines',
+                                 name='Polynomial Regression',
+                                 line=dict(color='red')))
+
+        fig.update_layout(title="Linear vs Polynomial Regression Fit",
+                          xaxis_title="Hours Studied",
+                          yaxis_title="Performance Index")
+
+        st.plotly_chart(fig, use_container_width=True)
+
     with subtab3:
-        st.subheader("🧪 Test Data with Predictions (Linear)")
-        test_data = X_test.copy()
-        test_data['Actual'] = y_test.values
-        test_data['Predicted (Linear)'] = y_pred_linear
-        test_data['Predicted (Poly)'] = y_pred_poly
-        st.dataframe(test_data.reset_index(drop=True), use_container_width=True)
+        st.subheader("Test Data with Predictions")
+        st.dataframe(test_df)
 
+with tab2:
+    st.header("Customer Segmentation")
+    st.info("Coming soon...")
+
+with tab3:
+    st.header("Loan Approval Prediction")
+    st.info("Coming soon...")
+
+with tab4:
+    st.header("Sales Forecasting")
+    st.info("Coming soon...")
 
 
 
