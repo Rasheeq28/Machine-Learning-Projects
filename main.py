@@ -757,6 +757,14 @@ with tab1:
             st.write(f"**R² Score:** {r2_score(y_test, y_pred_poly):.2f}")
             st.write("**Note:** Polynomial equation is inferred from model pipeline, not directly printed.")
 
+            st.subheader("📝 Predict Exam Score for Custom Hours Studied")
+            # Reuse the same input or add a new one (optional)
+            hours_input_poly = st.number_input("Enter hours studied:", min_value=0.0, max_value=100.0, value=5.0,
+                                               step=0.1, key="poly_input")
+            input_array_poly = np.array([[hours_input_poly]])
+            poly_pred = poly_model.predict(input_array_poly)[0]
+            st.write(f"**Polynomial Regression Prediction (Degree 2):** {poly_pred:.2f} exam score")
+
     # ========================== WHOLE DATASET TAB ==========================
     with subtab2:
         st.subheader("📂 Full Dataset (Raw CSV)")
