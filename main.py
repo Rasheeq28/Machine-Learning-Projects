@@ -1500,57 +1500,52 @@ with tab1:
 
         fig_all = go.Figure()
 
-        # Actual data (transparent white)
+        # Actual data points
         fig_all.add_trace(go.Scatter(
             x=df_clean['Hours_Studied'], y=df_clean['Exam_Score'],
             mode='markers',
             name='Actual Data',
-            marker=dict(color='white', opacity=0.5, size=6),
-            showlegend=True
+            marker=dict(color='white', size=6, symbol='circle')
         ))
 
-        # Multi-Feature Linear
+        # Multi-feature linear model predictions (on test set)
         fig_all.add_trace(go.Scatter(
             x=X_test_multi['Hours_Studied'], y=y_pred_multi,
-            mode='lines',
-            name='Multi-Feature Linear',
-            line=dict(color='blue', width=2, dash='solid')
+            mode='markers',
+            name='Multi-Feature Linear Predictions',
+            marker=dict(color='blue', size=8, symbol='triangle-up')
         ))
 
-
-        # Simple Linear
+        # Simple linear model predictions (on test set)
         fig_all.add_trace(go.Scatter(
             x=X_test_simple['Hours_Studied'], y=y_pred_simple,
-            mode='lines',
-            name='Simple Linear',
-            line=dict(color='red', width=2, dash='dot')
+            mode='markers',
+            name='Simple Linear Predictions',
+            marker=dict(color='red', size=8, symbol='x')
         ))
 
-        # Simple Polynomial
+        # Simple polynomial model predictions (on test set)
         fig_all.add_trace(go.Scatter(
             x=X_test_simple['Hours_Studied'], y=y_pred_poly_simple,
-            mode='lines',
-            name='Simple Polynomial',
-            line=dict(color='purple', width=2, dash='dash')
-        ))
-        # Multi-Feature Polynomial
-        fig_all.add_trace(go.Scatter(
-            x=X_test_multi['Hours_Studied'], y=y_pred_poly_multi,
-            mode='lines',
-            name='Multi-Feature Polynomial',
-            line=dict(color='orange', width=2, dash='dashdot')
+            mode='markers',
+            name='Simple Polynomial Predictions',
+            marker=dict(color='purple', size=8, symbol='diamond')
         ))
 
-        # Update layout
+        # Multi-feature polynomial model predictions (on test set)
+        fig_all.add_trace(go.Scatter(
+            x=X_test_multi['Hours_Studied'], y=y_pred_poly_multi,
+            mode='markers',
+            name='Multi-Feature Polynomial Predictions',
+            marker=dict(color='orange', size=8, symbol='star')
+        ))
+
         fig_all.update_layout(
-            title="📊 Model Predictions vs Actual Data by Hours Studied",
             xaxis_title="Hours Studied",
             yaxis_title="Exam Score",
-            height=600,
-            legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
-            plot_bgcolor='black',
-            paper_bgcolor='black',
-            font=dict(color='white')
+            legend=dict(orientation="h", y=-0.2),
+            title="Comparison: Actual Data vs Predictions by Hours Studied",
+            height=600
         )
 
         st.plotly_chart(fig_all, use_container_width=True)
