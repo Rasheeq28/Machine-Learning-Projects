@@ -790,6 +790,133 @@
 #         st.dataframe(test_data.reset_index(drop=True), use_container_width=True)
 
 
+# import streamlit as st
+# import pandas as pd
+# import numpy as np
+# from sklearn.model_selection import train_test_split
+# from sklearn.linear_model import LinearRegression
+# from sklearn.preprocessing import OneHotEncoder
+# from sklearn.compose import ColumnTransformer
+# from sklearn.pipeline import Pipeline
+# from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+#
+# st.set_page_config(page_title="Student Score Predictor (Multi-feature)", layout="wide")
+# st.title("📊 Student Exam Score Predictor with Multiple Features")
+#
+# # Load dataset
+# csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
+# df = pd.read_csv(csv_url)
+#
+# # Select features to use
+# numeric_features = [
+#     'Hours_Studied', 'Attendance', 'Previous_Scores',
+#     'Sleep_Hours', 'Tutoring_Sessions'
+# ]
+# categorical_features = [
+#     'Parental_Involvement', 'Access_to_Resources', 'Motivation_Level',
+#     'Teacher_Quality', 'School_Type', 'Peer_Influence',
+#     'Extracurricular_Activities', 'Internet_Access', 'Learning_Disabilities',
+#     'Parental_Education_Level', 'Distance_from_Home', 'Gender'
+# ]
+#
+# # Drop rows with missing target or features
+# df = df.dropna(subset=['Exam_Score'] + numeric_features + categorical_features)
+#
+# # Prepare X and y
+# X = df[numeric_features + categorical_features]
+# y = df['Exam_Score']
+#
+# # Preprocessing pipelines
+# numeric_transformer = 'passthrough'  # numeric features used as is
+#
+# categorical_transformer = OneHotEncoder(handle_unknown='ignore')
+#
+# preprocessor = ColumnTransformer(
+#     transformers=[
+#         ('num', numeric_transformer, numeric_features),
+#         ('cat', categorical_transformer, categorical_features)
+#     ])
+#
+# # Create a pipeline that preprocesses data then fits linear regression
+# model = Pipeline(steps=[('preprocessor', preprocessor),
+#                         ('regressor', LinearRegression())])
+#
+# # Train-test split
+# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+#
+# # Fit model
+# model.fit(X_train, y_train)
+#
+# # Predict on test
+# y_pred = model.predict(X_test)
+#
+# # Show metrics
+# st.subheader("📈 Model Performance Metrics")
+# st.write(f"Mean Absolute Error (MAE): {mean_absolute_error(y_test, y_pred):.2f}")
+# st.write(f"Mean Squared Error (MSE): {mean_squared_error(y_test, y_pred):.2f}")
+# st.write(f"Root Mean Squared Error (RMSE): {np.sqrt(mean_squared_error(y_test, y_pred)):.2f}")
+# st.write(f"R² Score: {r2_score(y_test, y_pred):.2f}")
+#
+# st.markdown("---")
+# st.header("📝 Predict Exam Score Based on Inputs")
+#
+# # Helper: Interpretations of features
+# feature_descriptions = {
+#     'Hours_Studied': "Number of hours spent studying per week. More hours generally improve scores.",
+#     'Attendance': "Percentage of classes attended. Higher attendance usually helps.",
+#     'Previous_Scores': "Scores from previous exams indicating past performance.",
+#     'Sleep_Hours': "Average hours of sleep per night. Adequate sleep aids concentration.",
+#     'Tutoring_Sessions': "Number of tutoring sessions attended monthly. Extra help improves learning.",
+#     'Parental_Involvement': "Parental support in education: Low, Medium, High.",
+#     'Access_to_Resources': "Availability of educational resources: Low, Medium, High.",
+#     'Motivation_Level': "Student's motivation: Low, Medium, High.",
+#     'Teacher_Quality': "Quality of teachers: Low, Medium, High.",
+#     'School_Type': "Type of school: Public or Private.",
+#     'Peer_Influence': "Peer impact on studies: Positive, Neutral, Negative.",
+#     'Extracurricular_Activities': "Participation in extracurriculars: Yes or No.",
+#     'Internet_Access': "Internet access availability: Yes or No.",
+#     'Learning_Disabilities': "Presence of learning disabilities: Yes or No.",
+#     'Parental_Education_Level': "Parents' education level: High School, College, Postgraduate.",
+#     'Distance_from_Home': "Distance to school: Near, Moderate, Far.",
+#     'Gender': "Student gender: Male or Female."
+# }
+#
+# # Input widgets container with two columns for input and description
+# for feature in numeric_features + categorical_features:
+#     col1, col2 = st.columns([2, 3])
+#     with col1:
+#         if feature in numeric_features:
+#             val = st.number_input(
+#                 f"{feature.replace('_', ' ')}",
+#                 value=float(df[feature].median()),
+#                 step=0.1,
+#                 key=feature
+#             )
+#         else:
+#             options = sorted(df[feature].dropna().unique())
+#             val = st.selectbox(
+#                 f"{feature.replace('_', ' ')}",
+#                 options,
+#                 index=0,
+#                 key=feature
+#             )
+#     with col2:
+#         st.markdown(f"**Interpretation:** {feature_descriptions.get(feature, '')}")
+#
+#     # Store user input
+#     if 'input_dict' not in st.session_state:
+#         st.session_state['input_dict'] = {}
+#     st.session_state['input_dict'][feature] = val
+#
+# # Build input DataFrame for prediction
+# input_df = pd.DataFrame({k: [v] for k, v in st.session_state['input_dict'].items()})
+#
+# # Predict button
+# if st.button("Predict Exam Score"):
+#     pred_score = model.predict(input_df)[0]
+#     st.success(f"🎉 Predicted Exam Score: **{pred_score:.2f}**")
+
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -799,15 +926,17 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import plotly.graph_objects as go
+import plotly.express as px
 
-st.set_page_config(page_title="Student Score Predictor (Multi-feature)", layout="wide")
-st.title("📊 Student Exam Score Predictor with Multiple Features")
+st.set_page_config(page_title="Student Score Predictor Comparison", layout="wide")
+st.title("📊 Compare Student Exam Score Prediction Models")
 
 # Load dataset
 csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
 df = pd.read_csv(csv_url)
 
-# Select features to use
+# Features for multi-feature model
 numeric_features = [
     'Hours_Studied', 'Attendance', 'Previous_Scores',
     'Sleep_Hours', 'Tutoring_Sessions'
@@ -819,101 +948,170 @@ categorical_features = [
     'Parental_Education_Level', 'Distance_from_Home', 'Gender'
 ]
 
-# Drop rows with missing target or features
-df = df.dropna(subset=['Exam_Score'] + numeric_features + categorical_features)
+# Clean data
+df = df.dropna(subset=['Exam_Score', 'Hours_Studied'] + numeric_features + categorical_features)
 
-# Prepare X and y
-X = df[numeric_features + categorical_features]
+# Prepare data for multi-feature model
+X_multi = df[numeric_features + categorical_features]
 y = df['Exam_Score']
 
-# Preprocessing pipelines
-numeric_transformer = 'passthrough'  # numeric features used as is
+# Prepare data for simple model (Hours_Studied only)
+X_simple = df[['Hours_Studied']]
 
-categorical_transformer = OneHotEncoder(handle_unknown='ignore')
+# Split dataset for both models (same split for fair comparison)
+X_train_multi, X_test_multi, y_train, y_test = train_test_split(X_multi, y, test_size=0.2, random_state=42)
+X_train_simple, X_test_simple, _, _ = train_test_split(X_simple, y, test_size=0.2, random_state=42)
 
+# Preprocessor for multi-feature model
 preprocessor = ColumnTransformer(
     transformers=[
-        ('num', numeric_transformer, numeric_features),
-        ('cat', categorical_transformer, categorical_features)
+        ('num', 'passthrough', numeric_features),
+        ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
     ])
 
-# Create a pipeline that preprocesses data then fits linear regression
-model = Pipeline(steps=[('preprocessor', preprocessor),
-                        ('regressor', LinearRegression())])
+# Pipelines
+multi_model = Pipeline([
+    ('preprocessor', preprocessor),
+    ('regressor', LinearRegression())
+])
 
-# Train-test split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+simple_model = LinearRegression()
 
-# Fit model
-model.fit(X_train, y_train)
+# Train both models
+multi_model.fit(X_train_multi, y_train)
+simple_model.fit(X_train_simple, y_train)
 
-# Predict on test
-y_pred = model.predict(X_test)
+# Predictions on test sets
+y_pred_multi = multi_model.predict(X_test_multi)
+y_pred_simple = simple_model.predict(X_test_simple)
 
-# Show metrics
-st.subheader("📈 Model Performance Metrics")
-st.write(f"Mean Absolute Error (MAE): {mean_absolute_error(y_test, y_pred):.2f}")
-st.write(f"Mean Squared Error (MSE): {mean_squared_error(y_test, y_pred):.2f}")
-st.write(f"Root Mean Squared Error (RMSE): {np.sqrt(mean_squared_error(y_test, y_pred)):.2f}")
-st.write(f"R² Score: {r2_score(y_test, y_pred):.2f}")
+# Metrics helper function
+def get_metrics(y_true, y_pred):
+    return {
+        "MAE": mean_absolute_error(y_true, y_pred),
+        "MSE": mean_squared_error(y_true, y_pred),
+        "RMSE": np.sqrt(mean_squared_error(y_true, y_pred)),
+        "R2": r2_score(y_true, y_pred)
+    }
+
+metrics_multi = get_metrics(y_test, y_pred_multi)
+metrics_simple = get_metrics(y_test, y_pred_simple)
+
+# Display metrics side-by-side
+st.subheader("📈 Model Performance Metrics Comparison")
+
+col1, col2 = st.columns(2)
+with col1:
+    st.markdown("### Multi-Feature Linear Regression")
+    st.write(f"**MAE:** {metrics_multi['MAE']:.2f}")
+    st.write(f"**MSE:** {metrics_multi['MSE']:.2f}")
+    st.write(f"**RMSE:** {metrics_multi['RMSE']:.2f}")
+    st.write(f"**R² Score:** {metrics_multi['R2']:.2f}")
+
+with col2:
+    st.markdown("### Simple Linear Regression (Hours Studied Only)")
+    st.write(f"**MAE:** {metrics_simple['MAE']:.2f}")
+    st.write(f"**MSE:** {metrics_simple['MSE']:.2f}")
+    st.write(f"**RMSE:** {metrics_simple['RMSE']:.2f}")
+    st.write(f"**R² Score:** {metrics_simple['R2']:.2f}")
+
+# Visualization: Predicted vs Actual for both models
+st.subheader("🎯 Predicted vs Actual Exam Scores")
+
+fig = go.Figure()
+# Multi-feature model points
+fig.add_trace(go.Scatter(
+    x=y_test, y=y_pred_multi,
+    mode='markers',
+    name='Multi-Feature Model',
+    marker=dict(color='blue')
+))
+# Simple model points
+fig.add_trace(go.Scatter(
+    x=y_test, y=y_pred_simple,
+    mode='markers',
+    name='Simple Model',
+    marker=dict(color='red')
+))
+# Perfect prediction line
+min_score = min(y_test.min(), y_pred_multi.min(), y_pred_simple.min())
+max_score = max(y_test.max(), y_pred_multi.max(), y_pred_simple.max())
+fig.add_trace(go.Scatter(
+    x=[min_score, max_score],
+    y=[min_score, max_score],
+    mode='lines',
+    name='Perfect Prediction',
+    line=dict(color='green', dash='dash')
+))
+fig.update_layout(
+    xaxis_title="Actual Exam Score",
+    yaxis_title="Predicted Exam Score",
+    legend=dict(orientation="h", y=-0.2),
+    height=500
+)
+st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("---")
-st.header("📝 Predict Exam Score Based on Inputs")
+st.header("📝 Predict Exam Score from Input Features")
 
-# Helper: Interpretations of features
+# Input for simple model
+hours_studied_simple = st.number_input(
+    "Enter Hours Studied (Simple Model):",
+    min_value=0.0, max_value=100.0, value=5.0, step=0.1,
+    key='hours_simple'
+)
+pred_simple = simple_model.predict(np.array([[hours_studied_simple]]))[0]
+
+# Input for multi-feature model (with explanations)
+st.markdown("### Multi-Feature Model Inputs")
+
+# Feature descriptions for user help
 feature_descriptions = {
-    'Hours_Studied': "Number of hours spent studying per week. More hours generally improve scores.",
-    'Attendance': "Percentage of classes attended. Higher attendance usually helps.",
-    'Previous_Scores': "Scores from previous exams indicating past performance.",
-    'Sleep_Hours': "Average hours of sleep per night. Adequate sleep aids concentration.",
-    'Tutoring_Sessions': "Number of tutoring sessions attended monthly. Extra help improves learning.",
-    'Parental_Involvement': "Parental support in education: Low, Medium, High.",
-    'Access_to_Resources': "Availability of educational resources: Low, Medium, High.",
-    'Motivation_Level': "Student's motivation: Low, Medium, High.",
-    'Teacher_Quality': "Quality of teachers: Low, Medium, High.",
-    'School_Type': "Type of school: Public or Private.",
-    'Peer_Influence': "Peer impact on studies: Positive, Neutral, Negative.",
-    'Extracurricular_Activities': "Participation in extracurriculars: Yes or No.",
-    'Internet_Access': "Internet access availability: Yes or No.",
-    'Learning_Disabilities': "Presence of learning disabilities: Yes or No.",
-    'Parental_Education_Level': "Parents' education level: High School, College, Postgraduate.",
-    'Distance_from_Home': "Distance to school: Near, Moderate, Far.",
-    'Gender': "Student gender: Male or Female."
+    'Hours_Studied': "Hours spent studying per week",
+    'Attendance': "Percentage of classes attended",
+    'Previous_Scores': "Scores from previous exams",
+    'Sleep_Hours': "Average hours of sleep per night",
+    'Tutoring_Sessions': "Number of tutoring sessions attended monthly",
+    'Parental_Involvement': "Parental support level (Low, Medium, High)",
+    'Access_to_Resources': "Availability of educational resources (Low, Medium, High)",
+    'Motivation_Level': "Motivation level (Low, Medium, High)",
+    'Teacher_Quality': "Teacher quality (Low, Medium, High)",
+    'School_Type': "Type of school (Public, Private)",
+    'Peer_Influence': "Peer influence (Positive, Neutral, Negative)",
+    'Extracurricular_Activities': "Participation (Yes, No)",
+    'Internet_Access': "Internet access (Yes, No)",
+    'Learning_Disabilities': "Learning disabilities (Yes, No)",
+    'Parental_Education_Level': "Parents' education level (High School, College, Postgraduate)",
+    'Distance_from_Home': "Distance to school (Near, Moderate, Far)",
+    'Gender': "Gender (Male, Female)"
 }
 
-# Input widgets container with two columns for input and description
-for feature in numeric_features + categorical_features:
-    col1, col2 = st.columns([2, 3])
-    with col1:
-        if feature in numeric_features:
-            val = st.number_input(
-                f"{feature.replace('_', ' ')}",
-                value=float(df[feature].median()),
-                step=0.1,
-                key=feature
-            )
-        else:
-            options = sorted(df[feature].dropna().unique())
-            val = st.selectbox(
-                f"{feature.replace('_', ' ')}",
-                options,
-                index=0,
-                key=feature
-            )
-    with col2:
-        st.markdown(f"**Interpretation:** {feature_descriptions.get(feature, '')}")
+input_data = {}
 
-    # Store user input
-    if 'input_dict' not in st.session_state:
-        st.session_state['input_dict'] = {}
-    st.session_state['input_dict'][feature] = val
+for feature in numeric_features:
+    val = st.number_input(
+        f"{feature} ({feature_descriptions.get(feature)})",
+        value=float(df[feature].median()),
+        step=0.1,
+        key=f"multi_{feature}"
+    )
+    input_data[feature] = val
 
-# Build input DataFrame for prediction
-input_df = pd.DataFrame({k: [v] for k, v in st.session_state['input_dict'].items()})
+for feature in categorical_features:
+    options = sorted(df[feature].dropna().unique())
+    val = st.selectbox(
+        f"{feature} ({feature_descriptions.get(feature)})",
+        options,
+        index=0,
+        key=f"multi_{feature}"
+    )
+    input_data[feature] = val
 
-# Predict button
-if st.button("Predict Exam Score"):
-    pred_score = model.predict(input_df)[0]
-    st.success(f"🎉 Predicted Exam Score: **{pred_score:.2f}**")
+# Predict multi-feature model result
+input_df = pd.DataFrame([input_data])
 
+if st.button("Predict Exam Scores for Both Models"):
+    pred_multi = multi_model.predict(input_df)[0]
+    st.success(f"Simple Model Prediction (Hours Studied only): **{pred_simple:.2f}**")
+    st.success(f"Multi-Feature Model Prediction: **{pred_multi:.2f}**")
 
