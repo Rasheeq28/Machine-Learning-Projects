@@ -709,6 +709,13 @@ with tab1:
             st.write(f"**R² Score:** {r2_score(y_test, y_pred_linear):.2f}")
             st.write(f"**Equation:** `Exam_Score = {linear_model.intercept_:.2f} + {linear_model.coef_[0]:.2f} * Hours_Studied`")
 
+            st.subheader("📝 Predict Exam Score for Custom Hours Studied (Linear)")
+            hours_input = st.number_input("Enter hours studied:", min_value=0.0, max_value=100.0, value=5.0, step=0.1,
+                                          key="linear_input")
+            input_array = np.array([[hours_input]])
+            linear_pred = linear_model.predict(input_array)[0]
+            st.write(f"**Linear Regression Prediction:** {linear_pred:.2f} exam score")
+
         # ========================== POLYNOMIAL ==========================
         with model_tab2:
             st.subheader("🟣 Polynomial Regression Model (Degree 2)")
