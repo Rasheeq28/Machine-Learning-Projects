@@ -1307,13 +1307,15 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+from sklearn.cluster import DBSCAN, KMeans
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import PolynomialFeatures
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 from sklearn.pipeline import make_pipeline
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import plotly.express as px
 import plotly.graph_objects as go
+import kagglehub
 
 st.set_page_config(page_title="Machine Learning projects", layout="wide")
 st.title("📊 Machine Learning projects")
@@ -1583,86 +1585,86 @@ with subtab3:
 
 
 with tab2:
-    st.subheader("🧮 Customer Segmentation (KMeans & DBSCAN)")
+    st.subheader("🧍 Customer Segmentation using Clustering")
 
-    # Download and load data
-    import kagglehub
-    dataset_path = kagglehub.dataset_download("vjchoudhary7/customer-segmentation-tutorial-in-python")
-    df_customers = pd.read_csv(dataset_path / "Mall_Customers.csv")
+    # Load dataset (from KaggleHub path)
+    try:
+        dataset_path = ("/mnt/data/kagglehub/datasets/vjchoudhary7/customer-segmentation-tutorial-in-python")
+        df_customers = pd.read_csv(dataset_path / "Mall_Customers.csv")
+    except Exception as e:
+        st.error(f"❌ Failed to load dataset: {e}")
+        st.stop()
 
-    st.write("### 👥 Raw Customer Data")
+    # Preview data
+    st.write("### Raw Dataset Preview")
     st.dataframe(df_customers.head(), use_container_width=True)
 
-    # Preprocessing: select relevant features
-    X = df_customers[['Annual Income (k$)', 'Spending Score (1-100)']]
+    # Select relevant features
+    df_selected = df_customers[['Annual Income (k$)', 'Spending Score (1-100)']]
 
-    # Standardize the data
-    from sklearn.preprocessing import StandardScaler
+    # Standardize features
     scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+    df_scaled = scaler.fit_transform(df_selected)
 
-    st.write("### 📊 Standardized Feature Distribution")
-    fig_std = px.scatter(
-        x=X_scaled[:, 0], y=X_scaled[:, 1],
-        labels={'x': 'Standardized Annual Income', 'y': 'Standardized Spending Score'},
-        title="Standardized Income vs Spending Score"
-    )
-    st.plotly_chart(fig_std, use_container_width=True)
+    # Show scaled data preview
+    st.write("### Scaled Features Preview")
+    st.dataframe(pd.DataFrame(df_scaled, columns=['Annual Income (scaled)', 'Spending Score (scaled)']))
 
-    # Elbow Method to find optimal K
-    from sklearn.cluster import KMeans
+    # Elbow method to find optimal number of clusters
     inertia = []
-    K_range = range(1, 11)
-    for k in K_range:
-        km = KMeans(n_clusters=k, random_state=42)
-        km.fit(X_scaled)
-        inertia.append(km.inertia_)
+    k_range = range(1, 11)
+    for k in k_range:
+        kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+        kmeans.fit(df_scaled)
+        inertia.append(kmeans.inertia_)
 
-    st.write("### 📈 Elbow Method for Optimal Clusters")
-    fig_elbow = px.line(x=list(K_range), y=inertia, markers=True,
-                        labels={'x': 'Number of Clusters (K)', 'y': 'Inertia'},
-                        title="Elbow Curve")
+    fig_elbow = go.Figure()
+    fig_elbow.add_trace(go.Scatter(x=list(k_range), y=inertia, mode='lines+markers', name='Inertia'))
+    fig_elbow.update_layout(title="🔍 Elbow Method for Optimal K", xaxis_title="Number of Clusters (K)", yaxis_title="Inertia")
     st.plotly_chart(fig_elbow, use_container_width=True)
 
-    # KMeans Clustering (choose optimal K = 5 for this dataset)
-    optimal_k = 5
-    kmeans = KMeans(n_clusters=optimal_k, random_state=42)
-    cluster_labels = kmeans.fit_predict(X_scaled)
+    # KMeans clustering
+    optimal_k = 5  # based on elbow visualization
+    kmeans = KMeans(n_clusters=optimal_k, random_state=42, n_init=10)
+    df_customers['Cluster'] = kmeans.fit_predict(df_scaled)
 
-    df_customers['KMeans Cluster'] = cluster_labels
-
-    st.write("### 🎯 Customer Segments (KMeans Clustering)")
-    fig_kmeans = px.scatter(
-        X_scaled, x=0, y=1,
-        color=cluster_labels.astype(str),
-        title="KMeans Clustering (Income vs Spending Score)",
-        labels={'0': 'Standardized Income', '1': 'Standardized Spending'},
-        color_discrete_sequence=px.colors.qualitative.Plotly
+    # Visualize clusters
+    fig_cluster = px.scatter(
+        df_customers,
+        x='Annual Income (k$)',
+        y='Spending Score (1-100)',
+        color=df_customers['Cluster'].astype(str),
+        title="💠 Customer Clusters (KMeans)",
+        labels={'Cluster': 'Segment'},
+        template="plotly"
     )
-    st.plotly_chart(fig_kmeans, use_container_width=True)
+    st.plotly_chart(fig_cluster, use_container_width=True)
 
-    # Average spending per cluster
-    avg_spending = df_customers.groupby('KMeans Cluster')['Spending Score (1-100)'].mean().reset_index()
-    st.write("### 💸 Average Spending Score per Cluster")
-    st.dataframe(avg_spending)
+    # Try DBSCAN clustering
+    dbscan = DBSCAN(eps=0.6, min_samples=5)
+    db_clusters = dbscan.fit_predict(df_scaled)
+    df_customers['DBSCAN_Cluster'] = db_clusters
 
-    # DBSCAN
-    from sklearn.cluster import DBSCAN
-    db = DBSCAN(eps=0.6, min_samples=5)
-    db_labels = db.fit_predict(X_scaled)
-
-    df_customers['DBSCAN Cluster'] = db_labels
-
-    st.write("### 🌀 DBSCAN Clustering Result")
-    fig_db = px.scatter(
-        X_scaled, x=0, y=1,
-        color=db_labels.astype(str),
-        title="DBSCAN Clustering (Income vs Spending Score)",
-        labels={'0': 'Standardized Income', '1': 'Standardized Spending'},
-        color_discrete_sequence=px.colors.qualitative.Set2
+    fig_dbscan = px.scatter(
+        df_customers,
+        x='Annual Income (k$)',
+        y='Spending Score (1-100)',
+        color=df_customers['DBSCAN_Cluster'].astype(str),
+        title="🔷 DBSCAN Clustering Results",
+        labels={'DBSCAN_Cluster': 'Segment'},
+        template="plotly_dark"
     )
-    st.plotly_chart(fig_db, use_container_width=True)
+    st.plotly_chart(fig_dbscan, use_container_width=True)
 
-    st.write("### 📋 Full Data with Cluster Labels")
-    st.dataframe(df_customers[['CustomerID', 'Annual Income (k$)', 'Spending Score (1-100)', 'KMeans Cluster', 'DBSCAN Cluster']], use_container_width=True)
+    # Analyze average spending per cluster (KMeans)
+    st.write("### 🧾 Average Spending per Cluster (KMeans)")
+    cluster_summary = df_customers.groupby('Cluster')[['Annual Income (k$)', 'Spending Score (1-100)']].mean().round(2)
+    st.dataframe(cluster_summary)
 
+    # Show cluster count
+    st.write("### 📊 Cluster Sizes")
+    cluster_counts = df_customers['Cluster'].value_counts().sort_index()
+    st.bar_chart(cluster_counts)
+
+    st.markdown("---")
+    st.write("🔄 **Note:** Features 'Annual Income' and 'Spending Score' were standardized before clustering.")
