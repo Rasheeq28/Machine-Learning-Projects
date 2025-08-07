@@ -589,6 +589,20 @@ with tab1:
             legend=dict(orientation="h", y=-0.2)
         )
         st.plotly_chart(fig3, use_container_width=True)
+        with subtab2:
+            st.subheader("📂 Full Dataset (Raw CSV)")
+            if df.empty:
+                st.warning("Dataset is empty or not loaded correctly.")
+            else:
+                st.dataframe(df, use_container_width=True)
+
+        # ------------------- Subtab 3: Test Data -------------------
+        with subtab3:
+            st.subheader("🧪 Test Data with Predictions")
+            test_data = X_test.copy()
+            test_data['Actual'] = y_test.values
+            test_data['Predicted'] = y_pred
+            st.dataframe(test_data.reset_index(drop=True), use_container_width=True)
 
         # Model Evaluation
         mae = mean_absolute_error(y_test, y_pred)
