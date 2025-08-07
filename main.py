@@ -1564,115 +1564,113 @@ with subtab2:
 with tab2:
     st.subheader("🧍 Customer Segmentation using Clustering")
 
-    # Load dataset from URL
-    df_customers = pd.read_csv("https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/Mall_Customers.csv")
+    # Create subtabs
+    data_tab, viz_tab = st.tabs(["📂 Dataset & Preprocessing", "📊 Visualizations & Interpretations"])
 
-    # Preview data
-    st.write("### Raw Dataset Preview")
-    st.dataframe(df_customers.head(), use_container_width=True)
+    with data_tab:
+        # Load dataset from URL
+        df_customers = pd.read_csv("https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/Mall_Customers.csv")
 
-    # Select relevant features: Annual Income and Spending Score
-    df_selected = df_customers[['Annual Income (k$)', 'Spending Score (1-100)']]
+        st.write("### Raw Dataset Preview")
+        st.dataframe(df_customers.head(), use_container_width=True)
 
-    # Standardize features
-    scaler = StandardScaler()
-    df_scaled = scaler.fit_transform(df_selected)
+        # Select relevant features: Annual Income and Spending Score
+        df_selected = df_customers[['Annual Income (k$)', 'Spending Score (1-100)']]
 
-    # Show scaled data preview
-    st.write("### Scaled Features Preview")
-    st.dataframe(pd.DataFrame(df_scaled, columns=['Annual Income (scaled)', 'Spending Score (scaled)']), use_container_width=True)
+        # Standardize features
+        scaler = StandardScaler()
+        df_scaled = scaler.fit_transform(df_selected)
 
-    # Elbow method to find optimal number of clusters
-    inertia = []
-    k_range = range(1, 11)
-    for k in k_range:
-        kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
-        kmeans.fit(df_scaled)
-        inertia.append(kmeans.inertia_)
+        st.write("### Scaled Features Preview")
+        st.dataframe(pd.DataFrame(df_scaled, columns=['Annual Income (scaled)', 'Spending Score (scaled)']), use_container_width=True)
 
-    fig_elbow = px.line(
-        x=list(k_range),
-        y=inertia,
-        labels={'x': 'Number of Clusters (K)', 'y': 'Inertia'},
-        title="🔍 Elbow Method for Optimal K"
-    )
-    st.plotly_chart(fig_elbow, use_container_width=True)
+    with viz_tab:
+        # Elbow method to find optimal number of clusters
+        inertia = []
+        k_range = range(1, 11)
+        for k in k_range:
+            kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+            kmeans.fit(df_scaled)
+            inertia.append(kmeans.inertia_)
 
-    st.write("""
-    **Interpretation:**  
-    The elbow plot shows the inertia decreasing as K increases. The 'elbow' point (where inertia reduction slows) suggests the optimal number of clusters.  
-    Here, K=5 is chosen to balance complexity and fit. Choosing this helps capture meaningful customer groups without overfitting.
-    """)
+        fig_elbow = px.line(
+            x=list(k_range),
+            y=inertia,
+            labels={'x': 'Number of Clusters (K)', 'y': 'Inertia'},
+            title="🔍 Elbow Method for Optimal K"
+        )
+        st.plotly_chart(fig_elbow, use_container_width=True)
 
-    # Choose optimal K (e.g. 5)
-    optimal_k = 5
-    kmeans = KMeans(n_clusters=optimal_k, random_state=42, n_init=10)
-    df_customers['Cluster'] = kmeans.fit_predict(df_scaled)
+        st.write("""
+        **Interpretation:**  
+        The elbow plot shows the inertia decreasing as K increases. The 'elbow' point suggests the optimal number of clusters.  
+        Here, K=5 is chosen to balance complexity and fit.
+        """)
 
-    # Visualize KMeans clusters
-    fig_cluster = px.scatter(
-        df_customers,
-        x='Annual Income (k$)',
-        y='Spending Score (1-100)',
-        color=df_customers['Cluster'].astype(str),
-        title="💠 Customer Clusters (KMeans)",
-        labels={'Cluster': 'Segment'},
-        template="plotly"
-    )
-    st.plotly_chart(fig_cluster, use_container_width=True)
+        # KMeans clustering with optimal_k=5
+        optimal_k = 5
+        kmeans = KMeans(n_clusters=optimal_k, random_state=42, n_init=10)
+        df_customers['Cluster'] = kmeans.fit_predict(df_scaled)
 
-    st.write("""
-    **Cluster Insights:**  
-    - Each color represents a distinct customer segment.  
-    - Segments differentiate customers by income and spending behavior.  
-    - Businesses can tailor marketing strategies based on these clusters, e.g., target high-spending, high-income customers with premium offers.
-    """)
+        fig_cluster = px.scatter(
+            df_customers,
+            x='Annual Income (k$)',
+            y='Spending Score (1-100)',
+            color=df_customers['Cluster'].astype(str),
+            title="💠 Customer Clusters (KMeans)",
+            labels={'Cluster': 'Segment'},
+            template="plotly"
+        )
+        st.plotly_chart(fig_cluster, use_container_width=True)
 
-    # DBSCAN clustering
-    dbscan = DBSCAN(eps=0.6, min_samples=5)
-    df_customers['DBSCAN_Cluster'] = dbscan.fit_predict(df_scaled)
+        st.write("""
+        **Cluster Insights:**  
+        - Colors represent distinct segments based on income and spending.  
+        - Use to tailor marketing: e.g., premium offers for high-income/high-spenders.
+        """)
 
-    fig_dbscan = px.scatter(
-        df_customers,
-        x='Annual Income (k$)',
-        y='Spending Score (1-100)',
-        color=df_customers['DBSCAN_Cluster'].astype(str),
-        title="🔷 DBSCAN Clustering Results",
-        labels={'DBSCAN_Cluster': 'Segment'},
-        template="plotly_dark"
-    )
-    st.plotly_chart(fig_dbscan, use_container_width=True)
+        # DBSCAN clustering
+        dbscan = DBSCAN(eps=0.6, min_samples=5)
+        df_customers['DBSCAN_Cluster'] = dbscan.fit_predict(df_scaled)
 
-    st.write("""
-    **DBSCAN Analysis:**  
-    - DBSCAN identifies clusters based on density and labels some points as outliers (-1).  
-    - This method can detect irregular shaped clusters and noise.  
-    - Outliers might represent niche customer groups or anomalies worth special attention.
-    """)
+        fig_dbscan = px.scatter(
+            df_customers,
+            x='Annual Income (k$)',
+            y='Spending Score (1-100)',
+            color=df_customers['DBSCAN_Cluster'].astype(str),
+            title="🔷 DBSCAN Clustering Results",
+            labels={'DBSCAN_Cluster': 'Segment'},
+            template="plotly_dark"
+        )
+        st.plotly_chart(fig_dbscan, use_container_width=True)
 
-    # Analyze average spending per cluster (KMeans)
-    st.write("### 🧾 Average Spending per Cluster (KMeans)")
-    cluster_summary = df_customers.groupby('Cluster')[['Annual Income (k$)', 'Spending Score (1-100)']].mean().round(2)
-    st.dataframe(cluster_summary)
+        st.write("""
+        **DBSCAN Analysis:**  
+        - Detects clusters by density and highlights outliers (-1).  
+        - Outliers could be niche customers or anomalies.
+        """)
 
-    st.write("""
-    **Cluster Averages Interpretation:**  
-    - Understand average income and spending score per segment.  
-    - Identify high-value segments with high income and spending for focused retention.  
-    - Low spending segments may benefit from targeted promotions or engagement campaigns.
-    """)
+        # Cluster averages summary (KMeans)
+        st.write("### 🧾 Average Spending per Cluster (KMeans)")
+        cluster_summary = df_customers.groupby('Cluster')[['Annual Income (k$)', 'Spending Score (1-100)']].mean().round(2)
+        st.dataframe(cluster_summary)
 
-    # Show cluster sizes
-    st.write("### 📊 Cluster Sizes")
-    cluster_counts = df_customers['Cluster'].value_counts().sort_index()
-    st.bar_chart(cluster_counts)
+        st.write("""
+        **Cluster Averages Interpretation:**  
+        - Shows average income & spending per cluster.  
+        - Identify high-value segments for focused engagement.
+        """)
 
-    st.write("""
-    **Cluster Size Insights:**  
-    - Shows the number of customers in each segment.  
-    - Larger clusters indicate broad customer bases; smaller clusters could be niche groups.  
-    - Resources and marketing budgets can be allocated proportionally.
-    """)
+        # Cluster sizes
+        st.write("### 📊 Cluster Sizes")
+        cluster_counts = df_customers['Cluster'].value_counts().sort_index()
+        st.bar_chart(cluster_counts)
 
-    st.markdown("---")
-    st.write("🔄 **Note:** Features 'Annual Income' and 'Spending Score' were standardized before clustering to give equal importance to both.")
+        st.write("""
+        **Cluster Size Insights:**  
+        - Larger clusters mean bigger customer groups; smaller ones are niches.  
+        - Allocate marketing resources accordingly.
+        """)
+
+        st.markdown("---")
+        st.write("🔄 **Note:** Features were standardized to give equal importance before clustering.")
