@@ -1254,7 +1254,7 @@ with tab1:
             x=df_clean['Hours_Studied'], y=df_clean['Exam_Score'],
             mode='markers',
             name='Actual Data',
-            marker=dict(color='black', size=6, symbol='circle')
+            marker=dict(color='white', size=6, symbol='circle')
         ))
 
         # Multi-feature model predictions (on test set)
