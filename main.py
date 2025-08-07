@@ -481,6 +481,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
 
 st.set_page_config(page_title="Machine Learning projects", layout="wide")
 st.title("📊 Machine Learning projects")
@@ -529,39 +531,64 @@ with tab1:
         # --- Arrange first two plots side-by-side ---
         col1, col2 = st.columns(2)
 
+        # Plot 1: Hours Studied vs Exam Score (with Regression Line)
         with col1:
-            fig1, ax1 = plt.subplots(figsize=(5, 4))
-            ax1.scatter(X, y, color='blue', alpha=0.5, label='Actual Data')
-            x_line = np.linspace(X.min(), X.max(), 100)
-            x_line_df = pd.DataFrame(x_line, columns=['Hours_Studied'])
-            y_line = model.predict(x_line_df)
-            ax1.plot(x_line, y_line, color='red', linewidth=2, label='Regression Line')
-            ax1.set_title('Hours Studied vs Exam Score')
-            ax1.set_xlabel('Hours Studied (per week)')
-            ax1.set_ylabel('Exam Score')
-            ax1.legend()
-            st.pyplot(fig1)
+            x_line = np.linspace(X.min(), X.max(), 100).reshape(-1, 1)
+            y_line = model.predict(x_line)
+            fig1 = go.Figure()
+            fig1.add_trace(go.Scatter(
+                x=df_clean['Hours_Studied'], y=df_clean['Exam_Score'],
+                mode='markers', name='Actual Data',
+                marker=dict(color='blue')
+            ))
+            fig1.add_trace(go.Scatter(
+                x=x_line.flatten(), y=y_line,
+                mode='lines', name='Regression Line',
+                line=dict(color='red')
+            ))
+            fig1.update_layout(
+                title='📘 Hours Studied vs Exam Score',
+                xaxis_title='Hours Studied (per week)',
+                yaxis_title='Exam Score',
+                legend=dict(orientation="h", y=-0.2)
+            )
+            st.plotly_chart(fig1, use_container_width=True)
 
+        # Plot 2: Actual vs Predicted Exam Scores
         with col2:
-            fig2, ax2 = plt.subplots(figsize=(5, 4))
-            ax2.scatter(y_test, y_pred, color='blue', alpha=0.6)
-            ax2.plot([y_test.min(), y_test.max()],
-                     [y_test.min(), y_test.max()],
-                     color='red', linewidth=2)
-            ax2.set_xlabel("Actual Exam Score")
-            ax2.set_ylabel("Predicted Exam Score")
-            ax2.set_title("Actual vs Predicted Scores")
-            st.pyplot(fig2)
+            fig2 = px.scatter(
+                x=y_test, y=y_pred,
+                labels={'x': 'Actual Exam Score', 'y': 'Predicted Exam Score'},
+                title="🎯 Actual vs Predicted Exam Scores",
+            )
+            fig2.add_trace(go.Scatter(
+                x=[y_test.min(), y_test.max()],
+                y=[y_test.min(), y_test.max()],
+                mode='lines',
+                name='Perfect Prediction Line',
+                line=dict(color='red')
+            ))
+            st.plotly_chart(fig2, use_container_width=True)
 
-        # --- Third plot below ---
-        fig3, ax3 = plt.subplots(figsize=(6, 4))
-        ax3.scatter(X_test, y_test, color='blue', label='Actual')
-        ax3.scatter(X_test, y_pred, color='red', alpha=0.6, label='Predicted')
-        ax3.set_xlabel('Hours Studied')
-        ax3.set_ylabel('Exam Score')
-        ax3.set_title('Test Data: Actual vs Predicted')
-        ax3.legend()
-        st.pyplot(fig3)
+        # Plot 3: Test Data Comparison
+        fig3 = go.Figure()
+        fig3.add_trace(go.Scatter(
+            x=X_test['Hours_Studied'], y=y_test,
+            mode='markers', name='Actual',
+            marker=dict(color='blue')
+        ))
+        fig3.add_trace(go.Scatter(
+            x=X_test['Hours_Studied'], y=y_pred,
+            mode='markers', name='Predicted',
+            marker=dict(color='red')
+        ))
+        fig3.update_layout(
+            title="🔍 Test Data: Actual vs Predicted",
+            xaxis_title='Hours Studied',
+            yaxis_title='Exam Score',
+            legend=dict(orientation="h", y=-0.2)
+        )
+        st.plotly_chart(fig3, use_container_width=True)
 
         # Model Evaluation
         mae = mean_absolute_error(y_test, y_pred)
@@ -576,7 +603,6 @@ with tab1:
         st.write(f"**R² Score:** {r2:.2f}")
         st.write(
             f"**Regression Equation:** `Exam_Score = {model.intercept_:.2f} + {model.coef_[0]:.2f} * Hours_Studied`")
-
 
 
 
