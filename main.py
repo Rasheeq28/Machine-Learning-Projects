@@ -1565,7 +1565,7 @@ with tab2:
     st.subheader("🧍 Customer Segmentation using Clustering")
 
     # Load dataset from URL
-    df_customers = pd.read_csv("https://raw.githubusercontent.com/Rasheeq28/Dataset/main/Mall_Customers.csv")
+    df_customers = pd.read_csv("https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/Mall_Customers.csv")
 
     # Preview data
     st.write("### Raw Dataset Preview")
