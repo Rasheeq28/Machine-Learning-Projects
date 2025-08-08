@@ -1838,90 +1838,82 @@
 #     st.write(f"**MAE:** {mean_absolute_error(y_test, y_pred_poly_multi):.2f}")
 #     st.write(f"**R²:** {r2_score(y_test, y_pred_poly_multi):.2f}")
 
-
+import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression, Ridge, Lasso
-from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler, OneHotEncoder
+from sklearn.pipeline import make_pipeline, Pipeline
+from sklearn.compose import ColumnTransformer
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import plotly.express as px
+import plotly.graph_objects as go
 
-# ===== LOAD YOUR DATA =====
-# Assuming your CSV is called "student_data.csv"
+st.set_page_config(page_title="Student Score Predictor", layout="wide")
+st.title("📊 Student Score Predictor")
+
+# Load dataset
 csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
 df = pd.read_csv(csv_url)
+df_clean = df.dropna()
 
-# Only using Hours_Studied to predict Exam_Score
-X = df[["Hours_Studied"]]
-y = df["Exam_Score"]
+target = "Exam_Score"
+single_feature = ["Hours_Studied"]
+all_features = [col for col in df_clean.columns if col != target]
 
-# ===== TRAIN TEST SPLIT =====
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# Split
+X_single = df_clean[single_feature]
+X_multi = df_clean[all_features]
+y = df_clean[target]
 
-# ===== MODELS =====
-models = {}
+X_train_s, X_test_s, y_train, y_test = train_test_split(X_single, y, test_size=0.2, random_state=42)
+X_train_m, X_test_m, _, _ = train_test_split(X_multi, y, test_size=0.2, random_state=42)
 
-# 1. Linear Regression
-lin_reg = LinearRegression()
-lin_reg.fit(X_train, y_train)
-y_pred_lin = lin_reg.predict(X_test)
-models["Linear Regression"] = y_pred_lin
+# Preprocessing for multi-feature
+numeric_cols = X_multi.select_dtypes(include=["int64", "float64"]).columns.tolist()
+cat_cols = [c for c in all_features if c not in numeric_cols]
 
-# 2. Polynomial Regression (degree 3)
-poly = PolynomialFeatures(degree=3)
-X_train_poly = poly.fit_transform(X_train)
-X_test_poly = poly.transform(X_test)
-poly_reg = LinearRegression()
-poly_reg.fit(X_train_poly, y_train)
-y_pred_poly = poly_reg.predict(X_test_poly)
-models["Polynomial Regression (deg=3)"] = y_pred_poly
+preprocessor = ColumnTransformer([
+    ("num", StandardScaler(), numeric_cols),
+    ("cat", OneHotEncoder(drop="first"), cat_cols)
+])
 
-# 3. Ridge Regression
-ridge = Ridge(alpha=1.0)
-ridge.fit(X_train, y_train)
-y_pred_ridge = ridge.predict(X_test)
-models["Ridge Regression"] = y_pred_ridge
+# Models
+models = {
+    "Simple Linear": Pipeline([("lr", LinearRegression())]),
+    "Multi-Feature Linear": Pipeline([("prep", preprocessor), ("lr", LinearRegression())]),
+    "Simple Poly (deg=2)": Pipeline([("poly", PolynomialFeatures(degree=2)), ("lr", LinearRegression())]),
+    "Multi-Feature Poly (deg=2)": Pipeline([
+        ("prep", preprocessor),
+        ("poly", PolynomialFeatures(degree=2, include_bias=False)),
+        ("lr", LinearRegression())
+    ])
+}
 
-# 4. Lasso Regression
-lasso = Lasso(alpha=0.01)
-lasso.fit(X_train, y_train)
-y_pred_lasso = lasso.predict(X_test)
-models["Lasso Regression"] = y_pred_lasso
+# Train & Predict
+predictions = {}
+metrics = []
+for name, model in models.items():
+    Xtr = X_train_s if "Simple" in name else X_train_m
+    Xte = X_test_s if "Simple" in name else X_test_m
+    model.fit(Xtr, y_train)
+    y_pred = model.predict(Xte)
+    predictions[name] = (Xte.copy(), y_pred)
+    metrics.append([name,
+                    r2_score(y_test, y_pred),
+                    mean_absolute_error(y_test, y_pred),
+                    mean_squared_error(y_test, y_pred),
+                    np.sqrt(mean_squared_error(y_test, y_pred))])
 
-# ===== METRICS COMPARISON =====
-metrics_list = []
+metrics_df = pd.DataFrame(metrics, columns=["Model", "R²", "MAE", "MSE", "RMSE"])
+st.subheader("Model Performance Comparison")
+st.dataframe(metrics_df.set_index("Model"))
 
-for model_name, y_pred in models.items():
-    mae = mean_absolute_error(y_test, y_pred)
-    mse = mean_squared_error(y_test, y_pred)
-    rmse = np.sqrt(mse)
-    r2 = r2_score(y_test, y_pred)
-    metrics_list.append([model_name, r2, mae, mse, rmse])
-
-metrics_df = pd.DataFrame(metrics_list, columns=["Model", "R²", "MAE", "MSE", "RMSE"])
-print("\n📊 Model Performance Comparison:")
-print(metrics_df)
-
-# ===== VISUALIZATION =====
-plt.figure(figsize=(10, 6))
-plt.scatter(X_test, y_test, color="white", edgecolors="black", s=70, label="Actual Data")
-
-# Sort for smooth plotting
-sort_idx = np.argsort(X_test.values.flatten())
-X_test_sorted = X_test.values.flatten()[sort_idx]
-
-plt.plot(X_test_sorted, models["Linear Regression"][sort_idx], label="Linear Regression", color="red")
-plt.plot(X_test_sorted, models["Polynomial Regression (deg=3)"][sort_idx], label="Polynomial Regression (deg=3)", color="blue")
-plt.plot(X_test_sorted, models["Ridge Regression"][sort_idx], label="Ridge Regression", color="green")
-plt.plot(X_test_sorted, models["Lasso Regression"][sort_idx], label="Lasso Regression", color="orange")
-
-plt.xlabel("Hours Studied")
-plt.ylabel("Exam Score")
-plt.title("Model Predictions vs Actual Data")
-plt.legend()
-plt.grid(True)
-plt.show()
-
-# ===== SAVE METRICS TABLE AS CSV =====
-metrics_df.to_csv("model_comparison.csv", index=False)
+# Plot comparison (Actual vs Predictions)
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=y_test, y=y_test, mode="lines", name="Perfect Fit", line=dict(color="black")))
+for name, (Xte, y_pred) in predictions.items():
+    fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name=name))
+fig.update_layout(title="Actual vs Predicted Scores", xaxis_title="Actual", yaxis_title="Predicted")
+st.plotly_chart(fig, use_container_width=True)
