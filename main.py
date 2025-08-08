@@ -1912,7 +1912,7 @@
 #
 # # Plot comparison (Actual vs Predictions)
 # fig = go.Figure()
-# fig.add_trace(go.Scatter(x=y_test, y=y_test, mode="lines", name="Perfect Fit", line=dict(color="black")))
+# fig.add_trace(go.Scatter(x=y_test, y=y_test, mode="lines", name="Perfect Fit", line=dict(color="white")))
 # for name, (Xte, y_pred) in predictions.items():
 #     fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name=name))
 # fig.update_layout(title="Actual vs Predicted Scores", xaxis_title="Actual", yaxis_title="Predicted")
@@ -2027,21 +2027,176 @@
 #
 # # Plot comparison (Actual vs Predictions)
 # fig = go.Figure()
-# fig.add_trace(go.Scatter(x=y_test, y=y_test, mode="lines", name="Perfect Fit", line=dict(color="black")))
+# fig.add_trace(go.Scatter(x=y_test, y=y_test, mode="lines", name="Perfect Fit", line=dict(color="white")))
 # for name, (Xte, y_pred) in predictions.items():
 #     fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name=name))
 # fig.update_layout(title="Actual vs Predicted Scores", xaxis_title="Actual", yaxis_title="Predicted")
 # st.plotly_chart(fig, use_container_width=True)
+
+#
+#
+# import streamlit as st
+# import pandas as pd
+# import numpy as np
+# from sklearn.model_selection import train_test_split
+# from sklearn.linear_model import LinearRegression
+# from sklearn.preprocessing import PolynomialFeatures, StandardScaler, OneHotEncoder
+# from sklearn.pipeline import Pipeline
+# from sklearn.compose import ColumnTransformer
+# from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+# import plotly.graph_objects as go
+#
+# st.set_page_config(page_title="Student Score Predictor", layout="wide")
+# st.title("📊 Student Score Predictor")
+#
+# # Load dataset
+# csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
+# df = pd.read_csv(csv_url)
+#
+# # Fill missing values with mode (most frequent) for each column
+# for col in df.columns:
+#     mode_val = df[col].mode()
+#     if not mode_val.empty:
+#         df[col].fillna(mode_val[0], inplace=True)
+#     else:
+#         df[col].fillna(method='ffill', inplace=True)
+#
+# target = "Exam_Score"
+#
+# # Define features explicitly from your sample
+# features = [
+#     "Hours_Studied",
+#     "Attendance",
+#     "Parental_Involvement",
+#     "Access_to_Resources",
+#     "Extracurricular_Activities",
+#     "Sleep_Hours",
+#     "Previous_Scores",
+#     "Motivation_Level",
+#     "Internet_Access",
+#     "Tutoring_Sessions",
+#     "Family_Income",
+#     "Teacher_Quality",
+#     "School_Type",
+#     "Peer_Influence",
+#     "Physical_Activity",
+#     "Learning_Disabilities",
+#     "Parental_Education_Level",
+#     "Distance_from_Home",  # categorical like Near, Moderate
+#     "Gender"
+# ]
+#
+# # Filter features actually in dataframe
+# features = [f for f in features if f in df.columns]
+#
+# # ----------- FEATURE ENGINEERING -----------
+#
+# # 1. Encode Gender to numeric (Male=0, Female=1)
+# if 'Gender' in df.columns and df['Gender'].dtype == 'object':
+#     df['Gender_Encoded'] = df['Gender'].map({'Male': 0, 'Female': 1})
+#     features = [f if f != 'Gender' else 'Gender_Encoded' for f in features]
+#
+# # 2. Interaction features for numeric columns: multiply Hours_Studied by numeric features
+# # Identify numeric features (likely: Hours_Studied, Sleep_Hours, Previous_Scores, Tutoring_Sessions)
+# numeric_features = ['Hours_Studied', 'Sleep_Hours', 'Previous_Scores', 'Tutoring_Sessions']
+# for feat in numeric_features:
+#     if feat in df.columns and feat != 'Hours_Studied':
+#         df[f'Hours_Studied_x_{feat}'] = df['Hours_Studied'] * df[feat]
+#
+# # 3. Interaction categorical feature between Family_Income and Access_to_Resources
+# if 'Family_Income' in df.columns and 'Access_to_Resources' in df.columns:
+#     df['FamilyIncome_x_Resources'] = df['Family_Income'].astype(str) + "_" + df['Access_to_Resources'].astype(str)
+#
+# # 4. Interaction categorical feature between Attendance and Motivation_Level
+# if 'Attendance' in df.columns and 'Motivation_Level' in df.columns:
+#     df['Attendance_x_Motivation'] = df['Attendance'].astype(str) + "_" + df['Motivation_Level'].astype(str)
+#
+# # Add these new engineered features to the feature list
+# new_features = [f'Hours_Studied_x_{feat}' for feat in numeric_features if feat != 'Hours_Studied']
+# if 'FamilyIncome_x_Resources' in df.columns:
+#     new_features.append('FamilyIncome_x_Resources')
+# if 'Attendance_x_Motivation' in df.columns:
+#     new_features.append('Attendance_x_Motivation')
+#
+# all_features = features + new_features
+#
+# # ----------- END FEATURE ENGINEERING -----------
+#
+# X = df[all_features]
+# y = df[target]
+#
+# # Single feature dataset for baseline
+# X_single = df[["Hours_Studied"]]
+#
+# # Train-test split
+# X_train_s, X_test_s, y_train, y_test = train_test_split(X_single, y, test_size=0.2, random_state=42)
+# X_train_m, X_test_m, _, _ = train_test_split(X, y, test_size=0.2, random_state=42)
+#
+# # Separate numeric and categorical for preprocessing
+# numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
+# cat_cols = [c for c in all_features if c not in numeric_cols]
+#
+# preprocessor = ColumnTransformer([
+#     ("num", StandardScaler(), numeric_cols),
+#     ("cat", OneHotEncoder(drop="first", handle_unknown="ignore"), cat_cols)
+# ])
+#
+# # Models
+# models = {
+#     "Simple Linear": Pipeline([("lr", LinearRegression())]),
+#     "Multi-Feature Linear": Pipeline([("prep", preprocessor), ("lr", LinearRegression())]),
+#     "Simple Poly (deg=2)": Pipeline([("poly", PolynomialFeatures(degree=2)), ("lr", LinearRegression())]),
+#     "Multi-Feature Poly (deg=2)": Pipeline([
+#         ("prep", preprocessor),
+#         ("poly", PolynomialFeatures(degree=2, include_bias=False)),
+#         ("lr", LinearRegression())
+#     ])
+# }
+#
+# # Train, predict, and collect metrics
+# predictions = {}
+# metrics = []
+# for name, model in models.items():
+#     Xtr = X_train_s if "Simple" in name else X_train_m
+#     Xte = X_test_s if "Simple" in name else X_test_m
+#     model.fit(Xtr, y_train)
+#     y_pred = model.predict(Xte)
+#     predictions[name] = (Xte.copy(), y_pred)
+#     metrics.append([
+#         name,
+#         r2_score(y_test, y_pred),
+#         mean_absolute_error(y_test, y_pred),
+#         mean_squared_error(y_test, y_pred),
+#         np.sqrt(mean_squared_error(y_test, y_pred))
+#     ])
+#
+# metrics_df = pd.DataFrame(metrics, columns=["Model", "R²", "MAE", "MSE", "RMSE"])
+# st.subheader("Model Performance Comparison")
+# st.dataframe(metrics_df.set_index("Model"))
+#
+# # Plot Actual vs Predicted
+# fig = go.Figure()
+# fig.add_trace(go.Scatter(x=y_test, y=y_test, mode="lines", name="Perfect Fit", line=dict(color="white")))
+# for name, (Xte, y_pred) in predictions.items():
+#     fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name=name))
+# fig.update_layout(title="Actual vs Predicted Scores", xaxis_title="Actual", yaxis_title="Predicted")
+# st.plotly_chart(fig, use_container_width=True)
+
+# better polynomial
 import streamlit as st
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler, OneHotEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import plotly.graph_objects as go
+import warnings
+
+# Suppress the UserWarning from ColumnTransformer when a list is empty
+warnings.filterwarnings("ignore", category=UserWarning)
 
 st.set_page_config(page_title="Student Score Predictor", layout="wide")
 st.title("📊 Student Score Predictor")
@@ -2060,123 +2215,116 @@ for col in df.columns:
 
 target = "Exam_Score"
 
-# Define features explicitly from your sample
+# Define features
 features = [
-    "Hours_Studied",
-    "Attendance",
-    "Parental_Involvement",
-    "Access_to_Resources",
-    "Extracurricular_Activities",
-    "Sleep_Hours",
-    "Previous_Scores",
-    "Motivation_Level",
-    "Internet_Access",
-    "Tutoring_Sessions",
-    "Family_Income",
-    "Teacher_Quality",
-    "School_Type",
-    "Peer_Influence",
-    "Physical_Activity",
-    "Learning_Disabilities",
-    "Parental_Education_Level",
-    "Distance_from_Home",  # categorical like Near, Moderate
-    "Gender"
+    "Hours_Studied", "Attendance", "Parental_Involvement", "Access_to_Resources",
+    "Extracurricular_Activities", "Sleep_Hours", "Previous_Scores",
+    "Motivation_Level", "Internet_Access", "Tutoring_Sessions",
+    "Family_Income", "Teacher_Quality", "School_Type", "Peer_Influence",
+    "Physical_Activity", "Learning_Disabilities", "Parental_Education_Level",
+    "Distance_from_Home", "Gender"
 ]
 
 # Filter features actually in dataframe
 features = [f for f in features if f in df.columns]
 
-# ----------- FEATURE ENGINEERING -----------
+# The original feature engineering is removed as PolynomialFeatures will handle interactions for numeric columns
+# and ColumnTransformer is more robust for categorical features.
 
-# 1. Encode Gender to numeric (Male=0, Female=1)
-if 'Gender' in df.columns and df['Gender'].dtype == 'object':
-    df['Gender_Encoded'] = df['Gender'].map({'Male': 0, 'Female': 1})
-    features = [f if f != 'Gender' else 'Gender_Encoded' for f in features]
-
-# 2. Interaction features for numeric columns: multiply Hours_Studied by numeric features
-# Identify numeric features (likely: Hours_Studied, Sleep_Hours, Previous_Scores, Tutoring_Sessions)
-numeric_features = ['Hours_Studied', 'Sleep_Hours', 'Previous_Scores', 'Tutoring_Sessions']
-for feat in numeric_features:
-    if feat in df.columns and feat != 'Hours_Studied':
-        df[f'Hours_Studied_x_{feat}'] = df['Hours_Studied'] * df[feat]
-
-# 3. Interaction categorical feature between Family_Income and Access_to_Resources
-if 'Family_Income' in df.columns and 'Access_to_Resources' in df.columns:
-    df['FamilyIncome_x_Resources'] = df['Family_Income'].astype(str) + "_" + df['Access_to_Resources'].astype(str)
-
-# 4. Interaction categorical feature between Attendance and Motivation_Level
-if 'Attendance' in df.columns and 'Motivation_Level' in df.columns:
-    df['Attendance_x_Motivation'] = df['Attendance'].astype(str) + "_" + df['Motivation_Level'].astype(str)
-
-# Add these new engineered features to the feature list
-new_features = [f'Hours_Studied_x_{feat}' for feat in numeric_features if feat != 'Hours_Studied']
-if 'FamilyIncome_x_Resources' in df.columns:
-    new_features.append('FamilyIncome_x_Resources')
-if 'Attendance_x_Motivation' in df.columns:
-    new_features.append('Attendance_x_Motivation')
-
-all_features = features + new_features
-
-# ----------- END FEATURE ENGINEERING -----------
-
-X = df[all_features]
+X = df[features]
 y = df[target]
 
-# Single feature dataset for baseline
-X_single = df[["Hours_Studied"]]
-
-# Train-test split
-X_train_s, X_test_s, y_train, y_test = train_test_split(X_single, y, test_size=0.2, random_state=42)
-X_train_m, X_test_m, _, _ = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# Separate numeric and categorical for preprocessing
+# Separate numeric and categorical columns for preprocessing
 numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
-cat_cols = [c for c in all_features if c not in numeric_cols]
+cat_cols = X.select_dtypes(include=["object"]).columns.tolist()
 
-preprocessor = ColumnTransformer([
-    ("num", StandardScaler(), numeric_cols),
-    ("cat", OneHotEncoder(drop="first", handle_unknown="ignore"), cat_cols)
+# Define the preprocessing steps
+# We create separate pipelines for numeric and categorical data to apply different transformations.
+# The numeric pipeline now includes PolynomialFeatures before scaling.
+numeric_poly_transformer = Pipeline(steps=[
+    ('poly', PolynomialFeatures(degree=2, include_bias=False)),
+    ('scaler', StandardScaler())
 ])
 
-# Models
+# The categorical pipeline only needs one-hot encoding.
+categorical_transformer = Pipeline(steps=[
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Create a ColumnTransformer that applies the correct pipelines to the correct columns.
+preprocessor_poly = ColumnTransformer(
+    transformers=[
+        ('num', numeric_poly_transformer, numeric_cols),
+        ('cat', categorical_transformer, cat_cols)
+    ],
+    remainder='passthrough'
+)
+
+# For the non-polynomial model, we use a simpler preprocessor.
+preprocessor_linear = ColumnTransformer(
+    transformers=[
+        ('scaler', StandardScaler(), numeric_cols),
+        ('onehot', OneHotEncoder(handle_unknown='ignore'), cat_cols)
+    ],
+    remainder='passthrough'
+)
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Models dictionary
 models = {
-    "Simple Linear": Pipeline([("lr", LinearRegression())]),
-    "Multi-Feature Linear": Pipeline([("prep", preprocessor), ("lr", LinearRegression())]),
-    "Simple Poly (deg=2)": Pipeline([("poly", PolynomialFeatures(degree=2)), ("lr", LinearRegression())]),
-    "Multi-Feature Poly (deg=2)": Pipeline([
-        ("prep", preprocessor),
-        ("poly", PolynomialFeatures(degree=2, include_bias=False)),
-        ("lr", LinearRegression())
+    "Simple Linear Regression": Pipeline(steps=[
+        ('preprocessor', ColumnTransformer(
+            transformers=[
+                ('scaler', StandardScaler(), ['Hours_Studied'])
+            ],
+            remainder='drop'  # Drop other columns not needed for this simple model
+        )),
+        ('regressor', LinearRegression())
+    ]),
+    "Multi-Feature Linear Regression": Pipeline(steps=[
+        ('preprocessor', preprocessor_linear),
+        ('regressor', LinearRegression())
+    ]),
+    "Multi-Feature Polynomial (deg=2)": Pipeline(steps=[
+        ('preprocessor', preprocessor_poly),
+        ('regressor', LinearRegression())
     ])
 }
 
 # Train, predict, and collect metrics
 predictions = {}
 metrics = []
+
+# Use cross-validation to provide more robust performance estimates
+st.subheader("Model Performance with Cross-Validation")
+cv_results = []
 for name, model in models.items():
-    Xtr = X_train_s if "Simple" in name else X_train_m
-    Xte = X_test_s if "Simple" in name else X_test_m
-    model.fit(Xtr, y_train)
-    y_pred = model.predict(Xte)
-    predictions[name] = (Xte.copy(), y_pred)
-    metrics.append([
+    # We use the full dataset for cross-validation
+    scores = cross_val_score(model, X, y, cv=5, scoring='r2')
+    mae_scores = -cross_val_score(model, X, y, cv=5, scoring='neg_mean_absolute_error')
+    cv_results.append([
         name,
-        r2_score(y_test, y_pred),
-        mean_absolute_error(y_test, y_pred),
-        mean_squared_error(y_test, y_pred),
-        np.sqrt(mean_squared_error(y_test, y_pred))
+        np.mean(scores),
+        np.std(scores),
+        np.mean(mae_scores)
     ])
+cv_df = pd.DataFrame(cv_results, columns=["Model", "Mean CV R²", "Std Dev CV R²", "Mean CV MAE"])
+st.dataframe(cv_df.set_index("Model"))
 
-metrics_df = pd.DataFrame(metrics, columns=["Model", "R²", "MAE", "MSE", "RMSE"])
-st.subheader("Model Performance Comparison")
-st.dataframe(metrics_df.set_index("Model"))
-
-# Plot Actual vs Predicted
+# Train final models on the full training set for plotting
+st.subheader("Actual vs Predicted Scores on Test Set")
 fig = go.Figure()
-fig.add_trace(go.Scatter(x=y_test, y=y_test, mode="lines", name="Perfect Fit", line=dict(color="black")))
-for name, (Xte, y_pred) in predictions.items():
+fig.add_trace(go.Scatter(x=y_test, y=y_test, mode="lines", name="Perfect Fit", line=dict(color="white")))
+
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+
+    # Store predictions for plotting
+    predictions[name] = y_pred
     fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name=name))
+
 fig.update_layout(title="Actual vs Predicted Scores", xaxis_title="Actual", yaxis_title="Predicted")
 st.plotly_chart(fig, use_container_width=True)
-
-
