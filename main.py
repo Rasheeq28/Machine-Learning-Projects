@@ -1304,373 +1304,518 @@
 
 
 # all
+# import streamlit as st
+# import pandas as pd
+# import numpy as np
+# from sklearn.cluster import DBSCAN, KMeans
+# from sklearn.model_selection import train_test_split
+# from sklearn.linear_model import LinearRegression
+# from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+# from sklearn.pipeline import make_pipeline
+# from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+# import plotly.express as px
+# import plotly.graph_objects as go
+# from sklearn.linear_model import Ridge
+# from sklearn.model_selection import GridSearchCV
+#
+#
+# st.set_page_config(page_title="Machine Learning projects", layout="wide")
+# st.title("📊 Machine Learning projects")
+#
+# # Main Tabs
+# tab1, tab2, tab3, tab4 = st.tabs([
+#     "Student Score Predictor",
+#     "Customer Segmentation",
+#     "Loan Approval Prediction",
+#     "Sales Forecasting"
+# ])
+#
+# # ================================= TAB 1 =================================
+# with tab1:
+#     subtab_main, subtab2, subtab3 = st.tabs(["Model & Visualizations", "Whole Dataset", "Test Data"])
+#
+#     # Load dataset
+#     csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
+#     df = pd.read_csv(csv_url)
+#
+#     # Clean data
+#     df_clean = df.dropna()
+#     # Simple model features
+#     X_simple = df_clean[['Hours_Studied']]
+#     y = df_clean['Exam_Score']
+#
+#     # Multi-feature selection (including Hours_Studied + selected numeric columns)
+#     feature_cols = ['Hours_Studied', 'Attendance', 'Previous_Scores', 'Sleep_Hours', 'Tutoring_Sessions', 'Physical_Activity']
+#     X_multi = df_clean[feature_cols]
+#
+#     # Split datasets
+#     X_train_simple, X_test_simple, y_train, y_test = train_test_split(X_simple, y, test_size=0.2, random_state=42)
+#     X_train_multi, X_test_multi, _, _ = train_test_split(X_multi, y, test_size=0.2, random_state=42)
+#
+#     # Sub-tabs: Linear | Multi-Feature | Simple Poly | Multi Poly
+#     with subtab_main:
+#         model_tab1, model_tab2, model_tab3, model_tab4 = st.tabs([
+#             "Simple Linear Model",
+#             "Multi-Feature Linear Model",
+#             "Simple Polynomial Model",
+#             "Multi-Feature Polynomial Model"
+#         ])
+#
+#         # ========================== SIMPLE LINEAR MODEL ==========================
+#         with model_tab1:
+#             st.subheader("🔵 Simple Linear Regression Model (Hours Studied only)")
+#
+#             simple_model = LinearRegression()
+#             simple_model.fit(X_train_simple, y_train)
+#             y_pred_simple = simple_model.predict(X_test_simple)
+#
+#             # Plot regression line + actual data
+#             x_line = np.linspace(X_simple.min(), X_simple.max(), 100).reshape(-1, 1)
+#             y_line = simple_model.predict(x_line)
+#             fig1 = go.Figure()
+#             fig1.add_trace(go.Scatter(x=df_clean['Hours_Studied'], y=df_clean['Exam_Score'],
+#                                       mode='markers', name='Actual Data', marker=dict(color='blue')))
+#             fig1.add_trace(go.Scatter(x=x_line.flatten(), y=y_line,
+#                                       mode='lines', name='Regression Line', line=dict(color='red')))
+#             fig1.update_layout(title='📘 Hours Studied vs Exam Score (Simple Linear Model)',
+#                                xaxis_title='Hours Studied', yaxis_title='Exam Score')
+#             st.plotly_chart(fig1, use_container_width=True)
+#
+#             st.subheader("📈 Simple Linear Model Metrics")
+#             st.write(f"**MAE:** {mean_absolute_error(y_test, y_pred_simple):.2f}")
+#             st.write(f"**MSE:** {mean_squared_error(y_test, y_pred_simple):.2f}")
+#             st.write(f"**RMSE:** {np.sqrt(mean_squared_error(y_test, y_pred_simple)):.2f}")
+#             st.write(f"**R² Score:** {r2_score(y_test, y_pred_simple):.2f}")
+#             st.write(f"**Equation:** `Exam_Score = {simple_model.intercept_:.2f} + {simple_model.coef_[0]:.2f} * Hours_Studied`")
+#
+#             st.subheader("📝 Predict Exam Score for Custom Hours Studied (Simple Linear Model)")
+#             hours_input_simple = st.number_input("Enter hours studied:", min_value=0.0, max_value=100.0, value=5.0, step=0.1, key="simple_linear_input")
+#             linear_pred_simple = simple_model.predict(np.array([[hours_input_simple]]))[0]
+#             st.write(f"**Prediction:** {linear_pred_simple:.2f} exam score")
+#
+#         # ========================== MULTI-FEATURE LINEAR MODEL ==========================
+#         with model_tab2:
+#             st.subheader("🟢 Multi-Feature Linear Regression Model")
+#
+#             multi_model = LinearRegression()
+#             multi_model.fit(X_train_multi, y_train)
+#             y_pred_multi = multi_model.predict(X_test_multi)
+#
+#             fig2 = px.scatter(x=y_test, y=y_pred_multi,
+#                               labels={'x': 'Actual Exam Score', 'y': 'Predicted Exam Score'},
+#                               title="🎯 Actual vs Predicted Exam Scores (Multi-Feature Model)")
+#             fig2.add_trace(go.Scatter(x=[y_test.min(), y_test.max()],
+#                                      y=[y_test.min(), y_test.max()],
+#                                      mode='lines', name='Perfect Fit', line=dict(color='red')))
+#             st.plotly_chart(fig2, use_container_width=True)
+#
+#             st.subheader("📈 Multi-Feature Linear Model Metrics")
+#             st.write(f"**MAE:** {mean_absolute_error(y_test, y_pred_multi):.2f}")
+#             st.write(f"**MSE:** {mean_squared_error(y_test, y_pred_multi):.2f}")
+#             st.write(f"**RMSE:** {np.sqrt(mean_squared_error(y_test, y_pred_multi)):.2f}")
+#             st.write(f"**R² Score:** {r2_score(y_test, y_pred_multi):.2f}")
+#
+#             st.write("**Coefficients:**")
+#             coef_df = pd.DataFrame({'Feature': feature_cols, 'Coefficient': multi_model.coef_})
+#             st.dataframe(coef_df)
+#
+#             st.subheader("📝 Predict Exam Score for Custom Inputs (Multi-Feature Model)")
+#             hours_input_multi = st.number_input("Hours studied:", min_value=0.0, max_value=100.0, value=5.0, step=0.1, key="multi_hours")
+#             attendance_input = st.slider("Attendance %:", 0, 100, 80, step=1)
+#             prev_score_input = st.slider("Previous Exam Score:", 0, 100, 75, step=1)
+#             sleep_input = st.slider("Sleep Hours per night:", 0.0, 12.0, 7.0, step=0.1)
+#             tutoring_input = st.slider("Monthly Tutoring Sessions:", 0, 20, 3, step=1)
+#             physical_input = st.slider("Physical Activity Hours per week:", 0.0, 20.0, 2.0, step=0.1)
+#
+#             input_multi_array = np.array([[hours_input_multi, attendance_input, prev_score_input, sleep_input, tutoring_input, physical_input]])
+#             multi_pred = multi_model.predict(input_multi_array)[0]
+#             st.write(f"**Prediction:** {multi_pred:.2f} exam score")
+#
+#         # ========================== SIMPLE POLYNOMIAL MODEL ==========================
+#         with model_tab3:
+#             st.subheader("🟣 Simple Polynomial Regression Model (Degree 2, Hours Studied only)")
+#
+#             poly_simple_model = make_pipeline(PolynomialFeatures(degree=2), LinearRegression())
+#             poly_simple_model.fit(X_train_simple, y_train)
+#             y_pred_poly_simple = poly_simple_model.predict(X_test_simple)
+#
+#             # Plot polynomial curve + actual data
+#             x_line = np.linspace(X_simple.min(), X_simple.max(), 100).reshape(-1, 1)
+#             y_line_poly = poly_simple_model.predict(x_line)
+#             fig3 = go.Figure()
+#             fig3.add_trace(go.Scatter(x=df_clean['Hours_Studied'], y=df_clean['Exam_Score'],
+#                                       mode='markers', name='Actual Data', marker=dict(color='blue')))
+#             fig3.add_trace(go.Scatter(x=x_line.flatten(), y=y_line_poly,
+#                                       mode='lines', name='Polynomial Curve', line=dict(color='green')))
+#             fig3.update_layout(title='📗 Hours Studied vs Exam Score (Simple Polynomial Model)',
+#                                xaxis_title='Hours Studied', yaxis_title='Exam Score')
+#             st.plotly_chart(fig3, use_container_width=True)
+#
+#             st.subheader("📈 Simple Polynomial Model Metrics")
+#             st.write(f"**MAE:** {mean_absolute_error(y_test, y_pred_poly_simple):.2f}")
+#             st.write(f"**MSE:** {mean_squared_error(y_test, y_pred_poly_simple):.2f}")
+#             st.write(f"**RMSE:** {np.sqrt(mean_squared_error(y_test, y_pred_poly_simple)):.2f}")
+#             st.write(f"**R² Score:** {r2_score(y_test, y_pred_poly_simple):.2f}")
+#             st.write("**Equation:** Polynomial equation based on degree 2 (not explicitly shown)")
+#
+#             st.subheader("📝 Predict Exam Score for Custom Hours Studied (Simple Polynomial Model)")
+#             hours_input_poly_simple = st.number_input("Enter hours studied:", min_value=0.0, max_value=100.0, value=5.0, step=0.1, key="simple_poly_input")
+#             poly_pred_simple = poly_simple_model.predict(np.array([[hours_input_poly_simple]]))[0]
+#             st.write(f"**Prediction:** {poly_pred_simple:.2f} exam score")
+#
+#         # ========================== MULTI-FEATURE POLYNOMIAL MODEL ==========================
+#         with model_tab4:
+#             st.subheader("🟠 Multi-Feature Polynomial Regression Model (Degree 2)")
+#
+#             poly_multi_model = make_pipeline(PolynomialFeatures(degree=2), LinearRegression())
+#             poly_multi_model.fit(X_train_multi, y_train)
+#             y_pred_poly_multi = poly_multi_model.predict(X_test_multi)
+#
+#             fig4 = px.scatter(x=y_test, y=y_pred_poly_multi,
+#                               labels={'x': 'Actual Exam Score', 'y': 'Predicted Exam Score'},
+#                               title="🎯 Actual vs Predicted Exam Scores (Multi-Feature Polynomial Model)")
+#             fig4.add_trace(go.Scatter(x=[y_test.min(), y_test.max()],
+#                                      y=[y_test.min(), y_test.max()],
+#                                      mode='lines', name='Perfect Fit', line=dict(color='red')))
+#             st.plotly_chart(fig4, use_container_width=True)
+#
+#             st.subheader("📈 Multi-Feature Polynomial Model Metrics")
+#             st.write(f"**MAE:** {mean_absolute_error(y_test, y_pred_poly_multi):.2f}")
+#             st.write(f"**MSE:** {mean_squared_error(y_test, y_pred_poly_multi):.2f}")
+#             st.write(f"**RMSE:** {np.sqrt(mean_squared_error(y_test, y_pred_poly_multi)):.2f}")
+#             st.write(f"**R² Score:** {r2_score(y_test, y_pred_poly_multi):.2f}")
+#             st.write("**Equation:** Polynomial equation based on degree 2 (not explicitly shown)")
+#
+#             st.subheader("📝 Predict Exam Score for Custom Inputs (Multi-Feature Polynomial Model)")
+#             hours_input_poly_multi = st.number_input("Hours studied:", min_value=0.0, max_value=100.0, value=5.0, step=0.1, key="poly_multi_hours")
+#             attendance_input_poly = st.slider("Attendance %:", 0, 100, 80, step=1, key="poly_attendance")
+#             prev_score_input_poly = st.slider("Previous Exam Score:", 0, 100, 75, step=1, key="poly_prev_score")
+#             sleep_input_poly = st.slider("Sleep Hours per night:", 0.0, 12.0, 7.0, step=0.1, key="poly_sleep")
+#             tutoring_input_poly = st.slider("Monthly Tutoring Sessions:", 0, 20, 3, step=1, key="poly_tutoring")
+#             physical_input_poly = st.slider("Physical Activity Hours per week:", 0.0, 20.0, 2.0, step=0.1, key="poly_physical")
+#
+#             input_poly_multi_array = np.array([[hours_input_poly_multi, attendance_input_poly, prev_score_input_poly, sleep_input_poly, tutoring_input_poly, physical_input_poly]])
+#             poly_multi_pred = poly_multi_model.predict(input_poly_multi_array)[0]
+#             st.write(f"**Prediction:** {poly_multi_pred:.2f} exam score")
+#
+#         # ========================== MULTI-MODEL COMPARISON VISUALIZATION ==========================
+#         st.markdown("---")
+#         st.subheader("📊 Actual Data and Model Predictions Comparison")
+#
+#         fig_all = go.Figure()
+#
+#         # Actual data points
+#         fig_all.add_trace(go.Scatter(
+#             x=df_clean['Hours_Studied'], y=df_clean['Exam_Score'],
+#             mode='markers',
+#             name='Actual Data',
+#             marker=dict(color='white', size=6, symbol='circle')
+#         ))
+#
+#         # Multi-feature linear model predictions (on test set)
+#         fig_all.add_trace(go.Scatter(
+#             x=X_test_multi['Hours_Studied'], y=y_pred_multi,
+#             mode='markers',
+#             name='Multi-Feature Linear Predictions',
+#             marker=dict(color='blue', size=8, symbol='triangle-up')
+#         ))
+#
+#         # Simple linear model predictions (on test set)
+#         fig_all.add_trace(go.Scatter(
+#             x=X_test_simple['Hours_Studied'], y=y_pred_simple,
+#             mode='markers',
+#             name='Simple Linear Predictions',
+#             marker=dict(color='red', size=8, symbol='x')
+#         ))
+#
+#         # Simple polynomial model predictions (on test set)
+#         fig_all.add_trace(go.Scatter(
+#             x=X_test_simple['Hours_Studied'], y=y_pred_poly_simple,
+#             mode='markers',
+#             name='Simple Polynomial Predictions',
+#             marker=dict(color='purple', size=8, symbol='diamond')
+#         ))
+#
+#         # Multi-feature polynomial model predictions (on test set)
+#         fig_all.add_trace(go.Scatter(
+#             x=X_test_multi['Hours_Studied'], y=y_pred_poly_multi,
+#             mode='markers',
+#             name='Multi-Feature Polynomial Predictions',
+#             marker=dict(color='orange', size=8, symbol='star')
+#         ))
+#
+#         fig_all.update_layout(
+#             xaxis_title="Hours Studied",
+#             yaxis_title="Exam Score",
+#             legend=dict(orientation="h", y=-0.2),
+#             title="Comparison: Actual Data vs Predictions by Hours Studied",
+#             height=600
+#         )
+#
+#         st.plotly_chart(fig_all, use_container_width=True)
+#
+# # ========================== WHOLE DATASET TAB ==========================
+# with subtab2:
+#     st.subheader("📂 Full Dataset (Raw CSV)")
+#     if df.empty:
+#         st.warning("Dataset is empty or not loaded correctly.")
+#     else:
+#         st.dataframe(df, use_container_width=True)
+#
+# # ========================== TEST DATA TAB ==========================
+# with tab2:
+#     st.subheader("🧍 Customer Segmentation using Clustering")
+#
+#     # Create subtabs
+#     data_tab, viz_tab = st.tabs(["📂 Dataset & Preprocessing", "📊 Visualizations & Interpretations"])
+#
+#     with data_tab:
+#         # Load dataset from URL
+#         df_customers = pd.read_csv("https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/Mall_Customers.csv")
+#
+#         st.write("### Raw Dataset Preview")
+#         st.dataframe(df_customers.head(), use_container_width=True)
+#
+#         # Select relevant features: Annual Income and Spending Score
+#         df_selected = df_customers[['Annual Income (k$)', 'Spending Score (1-100)']]
+#
+#         # Standardize features
+#         scaler = StandardScaler()
+#         df_scaled = scaler.fit_transform(df_selected)
+#
+#         st.write("### Scaled Features Preview")
+#         st.dataframe(pd.DataFrame(df_scaled, columns=['Annual Income (scaled)', 'Spending Score (scaled)']), use_container_width=True)
+#
+#     with viz_tab:
+#         # Elbow method to find optimal number of clusters
+#         inertia = []
+#         k_range = range(1, 11)
+#         for k in k_range:
+#             kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+#             kmeans.fit(df_scaled)
+#             inertia.append(kmeans.inertia_)
+#
+#         fig_elbow = px.line(
+#             x=list(k_range),
+#             y=inertia,
+#             labels={'x': 'Number of Clusters (K)', 'y': 'Inertia'},
+#             title="🔍 Elbow Method for Optimal K"
+#         )
+#         st.plotly_chart(fig_elbow, use_container_width=True)
+#
+#         st.write("""
+#         **Interpretation:**
+#         The elbow plot shows the inertia decreasing as K increases. The 'elbow' point suggests the optimal number of clusters.
+#         Here, K=5 is chosen to balance complexity and fit.
+#         """)
+#
+#         # KMeans clustering with optimal_k=5
+#         optimal_k = 5
+#         kmeans = KMeans(n_clusters=optimal_k, random_state=42, n_init=10)
+#         df_customers['Cluster'] = kmeans.fit_predict(df_scaled)
+#
+#         fig_cluster = px.scatter(
+#             df_customers,
+#             x='Annual Income (k$)',
+#             y='Spending Score (1-100)',
+#             color=df_customers['Cluster'].astype(str),
+#             title="💠 Customer Clusters (KMeans)",
+#             labels={'Cluster': 'Segment'},
+#             template="plotly"
+#         )
+#         st.plotly_chart(fig_cluster, use_container_width=True)
+#
+#         st.write("""
+#         **Cluster Insights:**
+#         - Colors represent distinct segments based on income and spending.
+#         - Use to tailor marketing: e.g., premium offers for high-income/high-spenders.
+#         """)
+#
+#         # DBSCAN clustering
+#         dbscan = DBSCAN(eps=0.6, min_samples=5)
+#         df_customers['DBSCAN_Cluster'] = dbscan.fit_predict(df_scaled)
+#
+#         fig_dbscan = px.scatter(
+#             df_customers,
+#             x='Annual Income (k$)',
+#             y='Spending Score (1-100)',
+#             color=df_customers['DBSCAN_Cluster'].astype(str),
+#             title="🔷 DBSCAN Clustering Results",
+#             labels={'DBSCAN_Cluster': 'Segment'},
+#             template="plotly_dark"
+#         )
+#         st.plotly_chart(fig_dbscan, use_container_width=True)
+#
+#         st.write("""
+#         **DBSCAN Analysis:**
+#         - Detects clusters by density and highlights outliers (-1).
+#         - Outliers could be niche customers or anomalies.
+#         """)
+#
+#         # Cluster averages summary (KMeans)
+#         st.write("### 🧾 Average Spending per Cluster (KMeans)")
+#         cluster_summary = df_customers.groupby('Cluster')[['Annual Income (k$)', 'Spending Score (1-100)']].mean().round(2)
+#         st.dataframe(cluster_summary)
+#
+#         st.write("""
+#         **Cluster Averages Interpretation:**
+#         - Shows average income & spending per cluster.
+#         - Identify high-value segments for focused engagement.
+#         """)
+#
+#         # Cluster sizes
+#         st.write("### 📊 Cluster Sizes")
+#         cluster_counts = df_customers['Cluster'].value_counts().sort_index()
+#         st.bar_chart(cluster_counts)
+#
+#         st.write("""
+#         **Cluster Size Insights:**
+#         - Larger clusters mean bigger customer groups; smaller ones are niches.
+#         - Allocate marketing resources accordingly.
+#         """)
+#
+#         st.markdown("---")
+#         st.write("🔄 **Note:** Features were standardized to give equal importance before clustering.")
+
+
 import streamlit as st
 import pandas as pd
 import numpy as np
-from sklearn.cluster import DBSCAN, KMeans
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 from sklearn.pipeline import make_pipeline
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-import plotly.express as px
 import plotly.graph_objects as go
-import kagglehub
+import plotly.express as px
 
-st.set_page_config(page_title="Machine Learning projects", layout="wide")
-st.title("📊 Machine Learning projects")
+# ============= STREAMLIT CONFIG =============
+st.set_page_config(page_title="ML Student Score Predictor", layout="wide")
+st.title("📊 Student Exam Score Prediction Models")
 
-# Main Tabs
-tab1, tab2, tab3, tab4 = st.tabs([
-    "Student Score Predictor",
-    "Customer Segmentation",
-    "Loan Approval Prediction",
-    "Sales Forecasting"
-])
+# ============= LOAD DATA =============
+csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
+df = pd.read_csv(csv_url).dropna()
 
-# ================================= TAB 1 =================================
-with tab1:
-    subtab_main, subtab2, subtab3 = st.tabs(["Model & Visualizations", "Whole Dataset", "Test Data"])
+# ============= FEATURES & TARGET =============
+X_simple = df[['Hours_Studied']]
+y = df['Exam_Score']
 
-    # Load dataset
-    csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
-    df = pd.read_csv(csv_url)
+feature_cols = [
+    'Hours_Studied', 'Attendance', 'Previous_Scores', 'Sleep_Hours',
+    'Tutoring_Sessions', 'Physical_Activity'
+]
+X_multi = df[feature_cols]
 
-    # Clean data
-    df_clean = df.dropna()
-    # Simple model features
-    X_simple = df_clean[['Hours_Studied']]
-    y = df_clean['Exam_Score']
+# ============= TRAIN TEST SPLIT (80:20) =============
+X_train_simple, X_test_simple, y_train, y_test = train_test_split(
+    X_simple, y, test_size=0.2, random_state=42
+)
+X_train_multi, X_test_multi, _, _ = train_test_split(
+    X_multi, y, test_size=0.2, random_state=42
+)
 
-    # Multi-feature selection (including Hours_Studied + selected numeric columns)
-    feature_cols = ['Hours_Studied', 'Attendance', 'Previous_Scores', 'Sleep_Hours', 'Tutoring_Sessions', 'Physical_Activity']
-    X_multi = df_clean[feature_cols]
+# ============= HELPER FUNCTION =============
+def model_metrics(y_true, y_pred):
+    return {
+        "MAE": mean_absolute_error(y_true, y_pred),
+        "MSE": mean_squared_error(y_true, y_pred),
+        "RMSE": np.sqrt(mean_squared_error(y_true, y_pred)),
+        "R²": r2_score(y_true, y_pred)
+    }
 
-    # Split datasets
-    X_train_simple, X_test_simple, y_train, y_test = train_test_split(X_simple, y, test_size=0.2, random_state=42)
-    X_train_multi, X_test_multi, _, _ = train_test_split(X_multi, y, test_size=0.2, random_state=42)
+# ============= SIMPLE LINEAR =============
+simple_lr = LinearRegression()
+simple_lr.fit(X_train_simple, y_train)
+y_pred_simple = simple_lr.predict(X_test_simple)
+metrics_simple = model_metrics(y_test, y_pred_simple)
 
-    # Sub-tabs: Linear | Multi-Feature | Simple Poly | Multi Poly
-    with subtab_main:
-        model_tab1, model_tab2, model_tab3, model_tab4 = st.tabs([
-            "Simple Linear Model",
-            "Multi-Feature Linear Model",
-            "Simple Polynomial Model",
-            "Multi-Feature Polynomial Model"
-        ])
+# ============= MULTI LINEAR =============
+multi_lr = LinearRegression()
+multi_lr.fit(X_train_multi, y_train)
+y_pred_multi = multi_lr.predict(X_test_multi)
+metrics_multi = model_metrics(y_test, y_pred_multi)
 
-        # ========================== SIMPLE LINEAR MODEL ==========================
-        with model_tab1:
-            st.subheader("🔵 Simple Linear Regression Model (Hours Studied only)")
+# ============= SIMPLE POLYNOMIAL (BEST DEGREE 2–4) =============
+best_r2_simple, best_degree_simple, best_poly_simple = -np.inf, None, None
+for degree in range(2, 5):
+    poly_model = make_pipeline(StandardScaler(), PolynomialFeatures(degree), LinearRegression())
+    poly_model.fit(X_train_simple, y_train)
+    r2_val = r2_score(y_test, poly_model.predict(X_test_simple))
+    if r2_val > best_r2_simple:
+        best_r2_simple = r2_val
+        best_degree_simple = degree
+        best_poly_simple = poly_model
 
-            simple_model = LinearRegression()
-            simple_model.fit(X_train_simple, y_train)
-            y_pred_simple = simple_model.predict(X_test_simple)
+y_pred_poly_simple = best_poly_simple.predict(X_test_simple)
+metrics_poly_simple = model_metrics(y_test, y_pred_poly_simple)
 
-            # Plot regression line + actual data
-            x_line = np.linspace(X_simple.min(), X_simple.max(), 100).reshape(-1, 1)
-            y_line = simple_model.predict(x_line)
-            fig1 = go.Figure()
-            fig1.add_trace(go.Scatter(x=df_clean['Hours_Studied'], y=df_clean['Exam_Score'],
-                                      mode='markers', name='Actual Data', marker=dict(color='blue')))
-            fig1.add_trace(go.Scatter(x=x_line.flatten(), y=y_line,
-                                      mode='lines', name='Regression Line', line=dict(color='red')))
-            fig1.update_layout(title='📘 Hours Studied vs Exam Score (Simple Linear Model)',
-                               xaxis_title='Hours Studied', yaxis_title='Exam Score')
-            st.plotly_chart(fig1, use_container_width=True)
+# ============= MULTI POLYNOMIAL (BEST DEGREE 2–3) =============
+best_r2_multi, best_degree_multi, best_poly_multi = -np.inf, None, None
+for degree in range(2, 4):
+    poly_model = make_pipeline(StandardScaler(), PolynomialFeatures(degree), LinearRegression())
+    poly_model.fit(X_train_multi, y_train)
+    r2_val = r2_score(y_test, poly_model.predict(X_test_multi))
+    if r2_val > best_r2_multi:
+        best_r2_multi = r2_val
+        best_degree_multi = degree
+        best_poly_multi = poly_model
 
-            st.subheader("📈 Simple Linear Model Metrics")
-            st.write(f"**MAE:** {mean_absolute_error(y_test, y_pred_simple):.2f}")
-            st.write(f"**MSE:** {mean_squared_error(y_test, y_pred_simple):.2f}")
-            st.write(f"**RMSE:** {np.sqrt(mean_squared_error(y_test, y_pred_simple)):.2f}")
-            st.write(f"**R² Score:** {r2_score(y_test, y_pred_simple):.2f}")
-            st.write(f"**Equation:** `Exam_Score = {simple_model.intercept_:.2f} + {simple_model.coef_[0]:.2f} * Hours_Studied`")
+y_pred_poly_multi = best_poly_multi.predict(X_test_multi)
+metrics_poly_multi = model_metrics(y_test, y_pred_poly_multi)
 
-            st.subheader("📝 Predict Exam Score for Custom Hours Studied (Simple Linear Model)")
-            hours_input_simple = st.number_input("Enter hours studied:", min_value=0.0, max_value=100.0, value=5.0, step=0.1, key="simple_linear_input")
-            linear_pred_simple = simple_model.predict(np.array([[hours_input_simple]]))[0]
-            st.write(f"**Prediction:** {linear_pred_simple:.2f} exam score")
+# ============= METRICS TABLE =============
+metrics_df = pd.DataFrame([
+    ["Simple Linear", metrics_simple["MAE"], metrics_simple["RMSE"], metrics_simple["R²"]],
+    ["Multi Linear", metrics_multi["MAE"], metrics_multi["RMSE"], metrics_multi["R²"]],
+    [f"Simple Poly (deg {best_degree_simple})", metrics_poly_simple["MAE"], metrics_poly_simple["RMSE"], metrics_poly_simple["R²"]],
+    [f"Multi Poly (deg {best_degree_multi})", metrics_poly_multi["MAE"], metrics_poly_multi["RMSE"], metrics_poly_multi["R²"]],
+], columns=["Model", "MAE", "RMSE", "R²"])
 
-        # ========================== MULTI-FEATURE LINEAR MODEL ==========================
-        with model_tab2:
-            st.subheader("🟢 Multi-Feature Linear Regression Model")
+st.subheader("📈 Model Performance Comparison")
+st.dataframe(metrics_df.style.format({"MAE": "{:.2f}", "RMSE": "{:.2f}", "R²": "{:.3f}"}))
 
-            multi_model = LinearRegression()
-            multi_model.fit(X_train_multi, y_train)
-            y_pred_multi = multi_model.predict(X_test_multi)
+# ============= VISUALISATION =============
+fig = go.Figure()
 
-            fig2 = px.scatter(x=y_test, y=y_pred_multi,
-                              labels={'x': 'Actual Exam Score', 'y': 'Predicted Exam Score'},
-                              title="🎯 Actual vs Predicted Exam Scores (Multi-Feature Model)")
-            fig2.add_trace(go.Scatter(x=[y_test.min(), y_test.max()],
-                                     y=[y_test.min(), y_test.max()],
-                                     mode='lines', name='Perfect Fit', line=dict(color='red')))
-            st.plotly_chart(fig2, use_container_width=True)
+# Actual points
+fig.add_trace(go.Scatter(
+    x=X_test_simple['Hours_Studied'], y=y_test,
+    mode='markers', name='Actual Data',
+    marker=dict(color='white', size=6, line=dict(width=1, color='black'))
+))
 
-            st.subheader("📈 Multi-Feature Linear Model Metrics")
-            st.write(f"**MAE:** {mean_absolute_error(y_test, y_pred_multi):.2f}")
-            st.write(f"**MSE:** {mean_squared_error(y_test, y_pred_multi):.2f}")
-            st.write(f"**RMSE:** {np.sqrt(mean_squared_error(y_test, y_pred_multi)):.2f}")
-            st.write(f"**R² Score:** {r2_score(y_test, y_pred_multi):.2f}")
+# Predictions
+fig.add_trace(go.Scatter(
+    x=X_test_simple['Hours_Studied'], y=y_pred_simple,
+    mode='markers', name='Simple Linear', marker=dict(color='red', symbol='circle')
+))
+fig.add_trace(go.Scatter(
+    x=X_test_multi['Hours_Studied'], y=y_pred_multi,
+    mode='markers', name='Multi Linear', marker=dict(color='blue', symbol='triangle-up')
+))
+fig.add_trace(go.Scatter(
+    x=X_test_simple['Hours_Studied'], y=y_pred_poly_simple,
+    mode='markers', name=f'Simple Poly (deg {best_degree_simple})', marker=dict(color='purple', symbol='diamond')
+))
+fig.add_trace(go.Scatter(
+    x=X_test_multi['Hours_Studied'], y=y_pred_poly_multi,
+    mode='markers', name=f'Multi Poly (deg {best_degree_multi})', marker=dict(color='orange', symbol='star')
+))
 
-            st.write("**Coefficients:**")
-            coef_df = pd.DataFrame({'Feature': feature_cols, 'Coefficient': multi_model.coef_})
-            st.dataframe(coef_df)
+fig.update_layout(
+    title="📊 Predictions by Model vs Hours Studied",
+    xaxis_title="Hours Studied",
+    yaxis_title="Exam Score",
+    legend=dict(orientation="h", y=-0.2),
+    height=600
+)
+st.plotly_chart(fig, use_container_width=True)
 
-            st.subheader("📝 Predict Exam Score for Custom Inputs (Multi-Feature Model)")
-            hours_input_multi = st.number_input("Hours studied:", min_value=0.0, max_value=100.0, value=5.0, step=0.1, key="multi_hours")
-            attendance_input = st.slider("Attendance %:", 0, 100, 80, step=1)
-            prev_score_input = st.slider("Previous Exam Score:", 0, 100, 75, step=1)
-            sleep_input = st.slider("Sleep Hours per night:", 0.0, 12.0, 7.0, step=0.1)
-            tutoring_input = st.slider("Monthly Tutoring Sessions:", 0, 20, 3, step=1)
-            physical_input = st.slider("Physical Activity Hours per week:", 0.0, 20.0, 2.0, step=0.1)
-
-            input_multi_array = np.array([[hours_input_multi, attendance_input, prev_score_input, sleep_input, tutoring_input, physical_input]])
-            multi_pred = multi_model.predict(input_multi_array)[0]
-            st.write(f"**Prediction:** {multi_pred:.2f} exam score")
-
-        # ========================== SIMPLE POLYNOMIAL MODEL ==========================
-        with model_tab3:
-            st.subheader("🟣 Simple Polynomial Regression Model (Degree 2, Hours Studied only)")
-
-            poly_simple_model = make_pipeline(PolynomialFeatures(degree=2), LinearRegression())
-            poly_simple_model.fit(X_train_simple, y_train)
-            y_pred_poly_simple = poly_simple_model.predict(X_test_simple)
-
-            # Plot polynomial curve + actual data
-            x_line = np.linspace(X_simple.min(), X_simple.max(), 100).reshape(-1, 1)
-            y_line_poly = poly_simple_model.predict(x_line)
-            fig3 = go.Figure()
-            fig3.add_trace(go.Scatter(x=df_clean['Hours_Studied'], y=df_clean['Exam_Score'],
-                                      mode='markers', name='Actual Data', marker=dict(color='blue')))
-            fig3.add_trace(go.Scatter(x=x_line.flatten(), y=y_line_poly,
-                                      mode='lines', name='Polynomial Curve', line=dict(color='green')))
-            fig3.update_layout(title='📗 Hours Studied vs Exam Score (Simple Polynomial Model)',
-                               xaxis_title='Hours Studied', yaxis_title='Exam Score')
-            st.plotly_chart(fig3, use_container_width=True)
-
-            st.subheader("📈 Simple Polynomial Model Metrics")
-            st.write(f"**MAE:** {mean_absolute_error(y_test, y_pred_poly_simple):.2f}")
-            st.write(f"**MSE:** {mean_squared_error(y_test, y_pred_poly_simple):.2f}")
-            st.write(f"**RMSE:** {np.sqrt(mean_squared_error(y_test, y_pred_poly_simple)):.2f}")
-            st.write(f"**R² Score:** {r2_score(y_test, y_pred_poly_simple):.2f}")
-            st.write("**Equation:** Polynomial equation based on degree 2 (not explicitly shown)")
-
-            st.subheader("📝 Predict Exam Score for Custom Hours Studied (Simple Polynomial Model)")
-            hours_input_poly_simple = st.number_input("Enter hours studied:", min_value=0.0, max_value=100.0, value=5.0, step=0.1, key="simple_poly_input")
-            poly_pred_simple = poly_simple_model.predict(np.array([[hours_input_poly_simple]]))[0]
-            st.write(f"**Prediction:** {poly_pred_simple:.2f} exam score")
-
-        # ========================== MULTI-FEATURE POLYNOMIAL MODEL ==========================
-        with model_tab4:
-            st.subheader("🟠 Multi-Feature Polynomial Regression Model (Degree 2)")
-
-            poly_multi_model = make_pipeline(PolynomialFeatures(degree=2), LinearRegression())
-            poly_multi_model.fit(X_train_multi, y_train)
-            y_pred_poly_multi = poly_multi_model.predict(X_test_multi)
-
-            fig4 = px.scatter(x=y_test, y=y_pred_poly_multi,
-                              labels={'x': 'Actual Exam Score', 'y': 'Predicted Exam Score'},
-                              title="🎯 Actual vs Predicted Exam Scores (Multi-Feature Polynomial Model)")
-            fig4.add_trace(go.Scatter(x=[y_test.min(), y_test.max()],
-                                     y=[y_test.min(), y_test.max()],
-                                     mode='lines', name='Perfect Fit', line=dict(color='red')))
-            st.plotly_chart(fig4, use_container_width=True)
-
-            st.subheader("📈 Multi-Feature Polynomial Model Metrics")
-            st.write(f"**MAE:** {mean_absolute_error(y_test, y_pred_poly_multi):.2f}")
-            st.write(f"**MSE:** {mean_squared_error(y_test, y_pred_poly_multi):.2f}")
-            st.write(f"**RMSE:** {np.sqrt(mean_squared_error(y_test, y_pred_poly_multi)):.2f}")
-            st.write(f"**R² Score:** {r2_score(y_test, y_pred_poly_multi):.2f}")
-            st.write("**Equation:** Polynomial equation based on degree 2 (not explicitly shown)")
-
-            st.subheader("📝 Predict Exam Score for Custom Inputs (Multi-Feature Polynomial Model)")
-            hours_input_poly_multi = st.number_input("Hours studied:", min_value=0.0, max_value=100.0, value=5.0, step=0.1, key="poly_multi_hours")
-            attendance_input_poly = st.slider("Attendance %:", 0, 100, 80, step=1, key="poly_attendance")
-            prev_score_input_poly = st.slider("Previous Exam Score:", 0, 100, 75, step=1, key="poly_prev_score")
-            sleep_input_poly = st.slider("Sleep Hours per night:", 0.0, 12.0, 7.0, step=0.1, key="poly_sleep")
-            tutoring_input_poly = st.slider("Monthly Tutoring Sessions:", 0, 20, 3, step=1, key="poly_tutoring")
-            physical_input_poly = st.slider("Physical Activity Hours per week:", 0.0, 20.0, 2.0, step=0.1, key="poly_physical")
-
-            input_poly_multi_array = np.array([[hours_input_poly_multi, attendance_input_poly, prev_score_input_poly, sleep_input_poly, tutoring_input_poly, physical_input_poly]])
-            poly_multi_pred = poly_multi_model.predict(input_poly_multi_array)[0]
-            st.write(f"**Prediction:** {poly_multi_pred:.2f} exam score")
-
-        # ========================== MULTI-MODEL COMPARISON VISUALIZATION ==========================
-        st.markdown("---")
-        st.subheader("📊 Actual Data and Model Predictions Comparison")
-
-        fig_all = go.Figure()
-
-        # Actual data points
-        fig_all.add_trace(go.Scatter(
-            x=df_clean['Hours_Studied'], y=df_clean['Exam_Score'],
-            mode='markers',
-            name='Actual Data',
-            marker=dict(color='white', size=6, symbol='circle')
-        ))
-
-        # Multi-feature linear model predictions (on test set)
-        fig_all.add_trace(go.Scatter(
-            x=X_test_multi['Hours_Studied'], y=y_pred_multi,
-            mode='markers',
-            name='Multi-Feature Linear Predictions',
-            marker=dict(color='blue', size=8, symbol='triangle-up')
-        ))
-
-        # Simple linear model predictions (on test set)
-        fig_all.add_trace(go.Scatter(
-            x=X_test_simple['Hours_Studied'], y=y_pred_simple,
-            mode='markers',
-            name='Simple Linear Predictions',
-            marker=dict(color='red', size=8, symbol='x')
-        ))
-
-        # Simple polynomial model predictions (on test set)
-        fig_all.add_trace(go.Scatter(
-            x=X_test_simple['Hours_Studied'], y=y_pred_poly_simple,
-            mode='markers',
-            name='Simple Polynomial Predictions',
-            marker=dict(color='purple', size=8, symbol='diamond')
-        ))
-
-        # Multi-feature polynomial model predictions (on test set)
-        fig_all.add_trace(go.Scatter(
-            x=X_test_multi['Hours_Studied'], y=y_pred_poly_multi,
-            mode='markers',
-            name='Multi-Feature Polynomial Predictions',
-            marker=dict(color='orange', size=8, symbol='star')
-        ))
-
-        fig_all.update_layout(
-            xaxis_title="Hours Studied",
-            yaxis_title="Exam Score",
-            legend=dict(orientation="h", y=-0.2),
-            title="Comparison: Actual Data vs Predictions by Hours Studied",
-            height=600
-        )
-
-        st.plotly_chart(fig_all, use_container_width=True)
-
-# ========================== WHOLE DATASET TAB ==========================
-with subtab2:
-    st.subheader("📂 Full Dataset (Raw CSV)")
-    if df.empty:
-        st.warning("Dataset is empty or not loaded correctly.")
-    else:
-        st.dataframe(df, use_container_width=True)
-
-# ========================== TEST DATA TAB ==========================
-with tab2:
-    st.subheader("🧍 Customer Segmentation using Clustering")
-
-    # Create subtabs
-    data_tab, viz_tab = st.tabs(["📂 Dataset & Preprocessing", "📊 Visualizations & Interpretations"])
-
-    with data_tab:
-        # Load dataset from URL
-        df_customers = pd.read_csv("https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/Mall_Customers.csv")
-
-        st.write("### Raw Dataset Preview")
-        st.dataframe(df_customers.head(), use_container_width=True)
-
-        # Select relevant features: Annual Income and Spending Score
-        df_selected = df_customers[['Annual Income (k$)', 'Spending Score (1-100)']]
-
-        # Standardize features
-        scaler = StandardScaler()
-        df_scaled = scaler.fit_transform(df_selected)
-
-        st.write("### Scaled Features Preview")
-        st.dataframe(pd.DataFrame(df_scaled, columns=['Annual Income (scaled)', 'Spending Score (scaled)']), use_container_width=True)
-
-    with viz_tab:
-        # Elbow method to find optimal number of clusters
-        inertia = []
-        k_range = range(1, 11)
-        for k in k_range:
-            kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
-            kmeans.fit(df_scaled)
-            inertia.append(kmeans.inertia_)
-
-        fig_elbow = px.line(
-            x=list(k_range),
-            y=inertia,
-            labels={'x': 'Number of Clusters (K)', 'y': 'Inertia'},
-            title="🔍 Elbow Method for Optimal K"
-        )
-        st.plotly_chart(fig_elbow, use_container_width=True)
-
-        st.write("""
-        **Interpretation:**  
-        The elbow plot shows the inertia decreasing as K increases. The 'elbow' point suggests the optimal number of clusters.  
-        Here, K=5 is chosen to balance complexity and fit.
-        """)
-
-        # KMeans clustering with optimal_k=5
-        optimal_k = 5
-        kmeans = KMeans(n_clusters=optimal_k, random_state=42, n_init=10)
-        df_customers['Cluster'] = kmeans.fit_predict(df_scaled)
-
-        fig_cluster = px.scatter(
-            df_customers,
-            x='Annual Income (k$)',
-            y='Spending Score (1-100)',
-            color=df_customers['Cluster'].astype(str),
-            title="💠 Customer Clusters (KMeans)",
-            labels={'Cluster': 'Segment'},
-            template="plotly"
-        )
-        st.plotly_chart(fig_cluster, use_container_width=True)
-
-        st.write("""
-        **Cluster Insights:**  
-        - Colors represent distinct segments based on income and spending.  
-        - Use to tailor marketing: e.g., premium offers for high-income/high-spenders.
-        """)
-
-        # DBSCAN clustering
-        dbscan = DBSCAN(eps=0.6, min_samples=5)
-        df_customers['DBSCAN_Cluster'] = dbscan.fit_predict(df_scaled)
-
-        fig_dbscan = px.scatter(
-            df_customers,
-            x='Annual Income (k$)',
-            y='Spending Score (1-100)',
-            color=df_customers['DBSCAN_Cluster'].astype(str),
-            title="🔷 DBSCAN Clustering Results",
-            labels={'DBSCAN_Cluster': 'Segment'},
-            template="plotly_dark"
-        )
-        st.plotly_chart(fig_dbscan, use_container_width=True)
-
-        st.write("""
-        **DBSCAN Analysis:**  
-        - Detects clusters by density and highlights outliers (-1).  
-        - Outliers could be niche customers or anomalies.
-        """)
-
-        # Cluster averages summary (KMeans)
-        st.write("### 🧾 Average Spending per Cluster (KMeans)")
-        cluster_summary = df_customers.groupby('Cluster')[['Annual Income (k$)', 'Spending Score (1-100)']].mean().round(2)
-        st.dataframe(cluster_summary)
-
-        st.write("""
-        **Cluster Averages Interpretation:**  
-        - Shows average income & spending per cluster.  
-        - Identify high-value segments for focused engagement.
-        """)
-
-        # Cluster sizes
-        st.write("### 📊 Cluster Sizes")
-        cluster_counts = df_customers['Cluster'].value_counts().sort_index()
-        st.bar_chart(cluster_counts)
-
-        st.write("""
-        **Cluster Size Insights:**  
-        - Larger clusters mean bigger customer groups; smaller ones are niches.  
-        - Allocate marketing resources accordingly.
-        """)
-
-        st.markdown("---")
-        st.write("🔄 **Note:** Features were standardized to give equal importance before clustering.")
+# ============= SINGLE INPUT PREDICTIONS =============
+st.subheader("🎯 Try Predictions")
+hours = st.number_input("Enter Hours Studied:", min_value=0.0, max_value=100.0, value=5.0, step=0.5)
+simple_pred = simple_lr.predict([[hours]])[0]
+poly_simple_pred = best_poly_simple.predict([[hours]])[0]
+st.write(f"**Simple Linear Prediction:** {simple_pred:.2f}")
+st.write(f"**Simple Polynomial (deg {best_degree_simple}) Prediction:** {poly_simple_pred:.2f}")
