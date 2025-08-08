@@ -1838,16 +1838,95 @@
 #     st.write(f"**MAE:** {mean_absolute_error(y_test, y_pred_poly_multi):.2f}")
 #     st.write(f"**R²:** {r2_score(y_test, y_pred_poly_multi):.2f}")
 
+# import streamlit as st
+# import pandas as pd
+# import numpy as np
+# from sklearn.model_selection import train_test_split
+# from sklearn.linear_model import LinearRegression
+# from sklearn.preprocessing import PolynomialFeatures, StandardScaler, OneHotEncoder
+# from sklearn.pipeline import make_pipeline, Pipeline
+# from sklearn.compose import ColumnTransformer
+# from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+# import plotly.express as px
+# import plotly.graph_objects as go
+#
+# st.set_page_config(page_title="Student Score Predictor", layout="wide")
+# st.title("📊 Student Score Predictor")
+#
+# # Load dataset
+# csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
+# df = pd.read_csv(csv_url)
+# df_clean = df.dropna()
+#
+# target = "Exam_Score"
+# single_feature = ["Hours_Studied"]
+# all_features = [col for col in df_clean.columns if col != target]
+#
+# # Split
+# X_single = df_clean[single_feature]
+# X_multi = df_clean[all_features]
+# y = df_clean[target]
+#
+# X_train_s, X_test_s, y_train, y_test = train_test_split(X_single, y, test_size=0.2, random_state=42)
+# X_train_m, X_test_m, _, _ = train_test_split(X_multi, y, test_size=0.2, random_state=42)
+#
+# # Preprocessing for multi-feature
+# numeric_cols = X_multi.select_dtypes(include=["int64", "float64"]).columns.tolist()
+# cat_cols = [c for c in all_features if c not in numeric_cols]
+#
+# preprocessor = ColumnTransformer([
+#     ("num", StandardScaler(), numeric_cols),
+#     ("cat", OneHotEncoder(drop="first"), cat_cols)
+# ])
+#
+# # Models
+# models = {
+#     "Simple Linear": Pipeline([("lr", LinearRegression())]),
+#     "Multi-Feature Linear": Pipeline([("prep", preprocessor), ("lr", LinearRegression())]),
+#     "Simple Poly (deg=2)": Pipeline([("poly", PolynomialFeatures(degree=2)), ("lr", LinearRegression())]),
+#     "Multi-Feature Poly (deg=2)": Pipeline([
+#         ("prep", preprocessor),
+#         ("poly", PolynomialFeatures(degree=2, include_bias=False)),
+#         ("lr", LinearRegression())
+#     ])
+# }
+#
+# # Train & Predict
+# predictions = {}
+# metrics = []
+# for name, model in models.items():
+#     Xtr = X_train_s if "Simple" in name else X_train_m
+#     Xte = X_test_s if "Simple" in name else X_test_m
+#     model.fit(Xtr, y_train)
+#     y_pred = model.predict(Xte)
+#     predictions[name] = (Xte.copy(), y_pred)
+#     metrics.append([name,
+#                     r2_score(y_test, y_pred),
+#                     mean_absolute_error(y_test, y_pred),
+#                     mean_squared_error(y_test, y_pred),
+#                     np.sqrt(mean_squared_error(y_test, y_pred))])
+#
+# metrics_df = pd.DataFrame(metrics, columns=["Model", "R²", "MAE", "MSE", "RMSE"])
+# st.subheader("Model Performance Comparison")
+# st.dataframe(metrics_df.set_index("Model"))
+#
+# # Plot comparison (Actual vs Predictions)
+# fig = go.Figure()
+# fig.add_trace(go.Scatter(x=y_test, y=y_test, mode="lines", name="Perfect Fit", line=dict(color="black")))
+# for name, (Xte, y_pred) in predictions.items():
+#     fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name=name))
+# fig.update_layout(title="Actual vs Predicted Scores", xaxis_title="Actual", yaxis_title="Predicted")
+# st.plotly_chart(fig, use_container_width=True)
+
 import streamlit as st
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler, OneHotEncoder
-from sklearn.pipeline import make_pipeline, Pipeline
+from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-import plotly.express as px
 import plotly.graph_objects as go
 
 st.set_page_config(page_title="Student Score Predictor", layout="wide")
@@ -1856,30 +1935,64 @@ st.title("📊 Student Score Predictor")
 # Load dataset
 csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
 df = pd.read_csv(csv_url)
-df_clean = df.dropna()
+
+# Fill missing values with mode (most frequent) for each column
+for col in df.columns:
+    mode_val = df[col].mode()
+    if not mode_val.empty:
+        df[col].fillna(mode_val[0], inplace=True)
+    else:
+        # fallback if mode is empty (rare case)
+        df[col].fillna(method='ffill', inplace=True)
 
 target = "Exam_Score"
-single_feature = ["Hours_Studied"]
-all_features = [col for col in df_clean.columns if col != target]
+
+# Features to use (including Hours_Studied and others you specified)
+features = [
+    "Hours_Studied",
+    "Attendance",
+    "Parental_Involvement",
+    "Access_to_Resources",
+    "Extracurricular_Activities",
+    "Sleep_Hours",
+    "Previous_Scores",
+    "Motivation_Level",
+    "Internet_Access",
+    "Tutoring_Sessions",
+    "Family_Income",
+    "Teacher_Quality",
+    "School_Type",
+    "Peer_Influence",
+    "Physical_Activity",
+    "Learning_Disabilities",
+    "Parental_Education_Level",
+    "Distance_from_Home",
+    "Gender"
+]
+
+# Filter features that actually exist in the dataset (avoid typos or missing columns)
+features = [f for f in features if f in df.columns]
+
+X = df[features]
+y = df[target]
+
+# For comparison, keep single feature dataset (Hours_Studied only)
+X_single = df[["Hours_Studied"]]
 
 # Split
-X_single = df_clean[single_feature]
-X_multi = df_clean[all_features]
-y = df_clean[target]
-
 X_train_s, X_test_s, y_train, y_test = train_test_split(X_single, y, test_size=0.2, random_state=42)
-X_train_m, X_test_m, _, _ = train_test_split(X_multi, y, test_size=0.2, random_state=42)
+X_train_m, X_test_m, _, _ = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Preprocessing for multi-feature
-numeric_cols = X_multi.select_dtypes(include=["int64", "float64"]).columns.tolist()
-cat_cols = [c for c in all_features if c not in numeric_cols]
+# Preprocessing for multi-feature: separate numeric and categorical
+numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
+cat_cols = [c for c in features if c not in numeric_cols]
 
 preprocessor = ColumnTransformer([
     ("num", StandardScaler(), numeric_cols),
-    ("cat", OneHotEncoder(drop="first"), cat_cols)
+    ("cat", OneHotEncoder(drop="first", handle_unknown="ignore"), cat_cols)
 ])
 
-# Models
+# Define models
 models = {
     "Simple Linear": Pipeline([("lr", LinearRegression())]),
     "Multi-Feature Linear": Pipeline([("prep", preprocessor), ("lr", LinearRegression())]),
@@ -1900,11 +2013,13 @@ for name, model in models.items():
     model.fit(Xtr, y_train)
     y_pred = model.predict(Xte)
     predictions[name] = (Xte.copy(), y_pred)
-    metrics.append([name,
-                    r2_score(y_test, y_pred),
-                    mean_absolute_error(y_test, y_pred),
-                    mean_squared_error(y_test, y_pred),
-                    np.sqrt(mean_squared_error(y_test, y_pred))])
+    metrics.append([
+        name,
+        r2_score(y_test, y_pred),
+        mean_absolute_error(y_test, y_pred),
+        mean_squared_error(y_test, y_pred),
+        np.sqrt(mean_squared_error(y_test, y_pred))
+    ])
 
 metrics_df = pd.DataFrame(metrics, columns=["Model", "R²", "MAE", "MSE", "RMSE"])
 st.subheader("Model Performance Comparison")
@@ -1917,3 +2032,4 @@ for name, (Xte, y_pred) in predictions.items():
     fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name=name))
 fig.update_layout(title="Actual vs Predicted Scores", xaxis_title="Actual", yaxis_title="Predicted")
 st.plotly_chart(fig, use_container_width=True)
+
