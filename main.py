@@ -3499,12 +3499,11 @@ warnings.filterwarnings("ignore", category=UserWarning)
 st.set_page_config(page_title="Student Score Predictor", layout="wide")
 st.title("📊 Student Score Predictor")
 
-# Load dataset
-csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
-df_raw = pd.read_csv(csv_url)
+# Load dataset from the uploaded file
+df_raw = pd.read_csv("elevvo - unique.csv")
 df = df_raw.copy()
 
-# Fill missing values with mode (most frequent) for each column
+# Fill missing values with mode for each column
 for col in df.columns:
     mode_val = df[col].mode()
     if not mode_val.empty:
@@ -3514,7 +3513,7 @@ for col in df.columns:
 
 target = "Exam_Score"
 
-# Define features
+# Define features, filtering out columns not present in the dataframe
 features = [
     "Hours_Studied", "Attendance", "Parental_Involvement", "Access_to_Resources",
     "Extracurricular_Activities", "Sleep_Hours", "Previous_Scores",
@@ -3529,19 +3528,19 @@ X = df[features]
 y = df[target]
 
 # --- REFINED PREPROCESSING PIPELINES with Ordinal Encoding ---
+# Attendance is numeric in this dataset, so we move it from ordinal to numeric.
 numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
-cat_cols = X.select_dtypes(include=["object"]).columns.tolist()
 
 # Define columns for specific transformers
-ordinal_cols = ["Attendance", "Parental_Involvement", "Motivation_Level"]
+ordinal_cols = ["Parental_Involvement", "Motivation_Level"]
+cat_cols = X.select_dtypes(include=["object"]).columns.tolist()
 onehot_cols = [col for col in cat_cols if col not in ordinal_cols]
-poly_features_list = ["Hours_Studied", "Previous_Scores"] # Reduced for a more targeted approach
+poly_features_list = ["Hours_Studied", "Previous_Scores"]
 
 # Define the order for ordinal features
 ordinal_categories = [
-    ['Low', 'Medium', 'High', 'Average'],  # Attendance
-    ['Low', 'Medium', 'High'],            # Parental_Involvement
-    ['Low', 'Medium', 'High']             # Motivation_Level
+    ['Low', 'Medium', 'High'],  # Parental_Involvement
+    ['Low', 'Medium', 'High']   # Motivation_Level
 ]
 
 # Pipelines for different data types
