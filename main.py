@@ -1849,7 +1849,8 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 # ===== LOAD YOUR DATA =====
 # Assuming your CSV is called "student_data.csv"
-df = pd.read_csv("student_data.csv")
+csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
+df = pd.read_csv(csv_url)
 
 # Only using Hours_Studied to predict Exam_Score
 X = df[["Hours_Studied"]]
