@@ -1917,16 +1917,133 @@
 #     fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name=name))
 # fig.update_layout(title="Actual vs Predicted Scores", xaxis_title="Actual", yaxis_title="Predicted")
 # st.plotly_chart(fig, use_container_width=True)
+#
+# import streamlit as st
+# import pandas as pd
+# import numpy as np
+# from sklearn.model_selection import train_test_split
+# from sklearn.linear_model import LinearRegression
+# from sklearn.preprocessing import PolynomialFeatures, StandardScaler, OneHotEncoder
+# from sklearn.pipeline import Pipeline
+# from sklearn.compose import ColumnTransformer
+# from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+# import plotly.graph_objects as go
+#
+# st.set_page_config(page_title="Student Score Predictor", layout="wide")
+# st.title("📊 Student Score Predictor")
+#
+# # Load dataset
+# csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
+# df = pd.read_csv(csv_url)
+#
+# # Fill missing values with mode (most frequent) for each column
+# for col in df.columns:
+#     mode_val = df[col].mode()
+#     if not mode_val.empty:
+#         df[col].fillna(mode_val[0], inplace=True)
+#     else:
+#         # fallback if mode is empty (rare case)
+#         df[col].fillna(method='ffill', inplace=True)
+#
+# target = "Exam_Score"
+#
+# # Features to use (including Hours_Studied and others you specified)
+# features = [
+#     "Hours_Studied",
+#     "Attendance",
+#     "Parental_Involvement",
+#     "Access_to_Resources",
+#     "Extracurricular_Activities",
+#     "Sleep_Hours",
+#     "Previous_Scores",
+#     "Motivation_Level",
+#     "Internet_Access",
+#     "Tutoring_Sessions",
+#     "Family_Income",
+#     "Teacher_Quality",
+#     "School_Type",
+#     "Peer_Influence",
+#     "Physical_Activity",
+#     "Learning_Disabilities",
+#     "Parental_Education_Level",
+#     "Distance_from_Home",
+#     "Gender"
+# ]
+#
+# # Filter features that actually exist in the dataset (avoid typos or missing columns)
+# features = [f for f in features if f in df.columns]
+#
+# X = df[features]
+# y = df[target]
+#
+# # For comparison, keep single feature dataset (Hours_Studied only)
+# X_single = df[["Hours_Studied"]]
+#
+# # Split
+# X_train_s, X_test_s, y_train, y_test = train_test_split(X_single, y, test_size=0.2, random_state=42)
+# X_train_m, X_test_m, _, _ = train_test_split(X, y, test_size=0.2, random_state=42)
+#
+# # Preprocessing for multi-feature: separate numeric and categorical
+# numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
+# cat_cols = [c for c in features if c not in numeric_cols]
+#
+# preprocessor = ColumnTransformer([
+#     ("num", StandardScaler(), numeric_cols),
+#     ("cat", OneHotEncoder(drop="first", handle_unknown="ignore"), cat_cols)
+# ])
+#
+# # Define models
+# models = {
+#     "Simple Linear": Pipeline([("lr", LinearRegression())]),
+#     "Multi-Feature Linear": Pipeline([("prep", preprocessor), ("lr", LinearRegression())]),
+#     "Simple Poly (deg=2)": Pipeline([("poly", PolynomialFeatures(degree=2)), ("lr", LinearRegression())]),
+#     "Multi-Feature Poly (deg=2)": Pipeline([
+#         ("prep", preprocessor),
+#         ("poly", PolynomialFeatures(degree=2, include_bias=False)),
+#         ("lr", LinearRegression())
+#     ])
+# }
+#
+# # Train & Predict
+# predictions = {}
+# metrics = []
+# for name, model in models.items():
+#     Xtr = X_train_s if "Simple" in name else X_train_m
+#     Xte = X_test_s if "Simple" in name else X_test_m
+#     model.fit(Xtr, y_train)
+#     y_pred = model.predict(Xte)
+#     predictions[name] = (Xte.copy(), y_pred)
+#     metrics.append([
+#         name,
+#         r2_score(y_test, y_pred),
+#         mean_absolute_error(y_test, y_pred),
+#         mean_squared_error(y_test, y_pred),
+#         np.sqrt(mean_squared_error(y_test, y_pred))
+#     ])
+#
+# metrics_df = pd.DataFrame(metrics, columns=["Model", "R²", "MAE", "MSE", "RMSE"])
+# st.subheader("Model Performance Comparison")
+# st.dataframe(metrics_df.set_index("Model"))
+#
+# # Plot comparison (Actual vs Predictions)
+# fig = go.Figure()
+# fig.add_trace(go.Scatter(x=y_test, y=y_test, mode="lines", name="Perfect Fit", line=dict(color="black")))
+# for name, (Xte, y_pred) in predictions.items():
+#     fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name=name))
+# fig.update_layout(title="Actual vs Predicted Scores", xaxis_title="Actual", yaxis_title="Predicted")
+# st.plotly_chart(fig, use_container_width=True)
 
 import streamlit as st
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler, OneHotEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.ensemble import RandomForestRegressor
+import xgboost as xgb
 import plotly.graph_objects as go
 
 st.set_page_config(page_title="Student Score Predictor", layout="wide")
@@ -1942,12 +2059,11 @@ for col in df.columns:
     if not mode_val.empty:
         df[col].fillna(mode_val[0], inplace=True)
     else:
-        # fallback if mode is empty (rare case)
         df[col].fillna(method='ffill', inplace=True)
 
 target = "Exam_Score"
 
-# Features to use (including Hours_Studied and others you specified)
+# Features list
 features = [
     "Hours_Studied",
     "Attendance",
@@ -1970,20 +2086,24 @@ features = [
     "Gender"
 ]
 
-# Filter features that actually exist in the dataset (avoid typos or missing columns)
 features = [f for f in features if f in df.columns]
+
+# === FEATURE ENGINEERING ===
+# Create interaction feature: Hours_Studied * Motivation_Level
+df['Study_Motivation'] = df['Hours_Studied'] * df['Motivation_Level']
+features.append('Study_Motivation')
 
 X = df[features]
 y = df[target]
 
-# For comparison, keep single feature dataset (Hours_Studied only)
+# Single feature dataset for comparison
 X_single = df[["Hours_Studied"]]
 
-# Split
+# Split data
 X_train_s, X_test_s, y_train, y_test = train_test_split(X_single, y, test_size=0.2, random_state=42)
 X_train_m, X_test_m, _, _ = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Preprocessing for multi-feature: separate numeric and categorical
+# Preprocessing: numeric vs categorical
 numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
 cat_cols = [c for c in features if c not in numeric_cols]
 
@@ -1992,7 +2112,7 @@ preprocessor = ColumnTransformer([
     ("cat", OneHotEncoder(drop="first", handle_unknown="ignore"), cat_cols)
 ])
 
-# Define models
+# Define basic models
 models = {
     "Simple Linear": Pipeline([("lr", LinearRegression())]),
     "Multi-Feature Linear": Pipeline([("prep", preprocessor), ("lr", LinearRegression())]),
@@ -2001,17 +2121,82 @@ models = {
         ("prep", preprocessor),
         ("poly", PolynomialFeatures(degree=2, include_bias=False)),
         ("lr", LinearRegression())
-    ])
+    ]),
 }
+
+# === Add Random Forest with Hyperparameter Tuning ===
+rf = RandomForestRegressor(random_state=42)
+
+rf_param_dist = {
+    'n_estimators': [50, 100, 200],
+    'max_depth': [None, 5, 10, 20],
+    'min_samples_split': [2, 5, 10],
+    'min_samples_leaf': [1, 2, 4],
+    'max_features': ['auto', 'sqrt']
+}
+
+rf_search = RandomizedSearchCV(
+    rf,
+    param_distributions=rf_param_dist,
+    n_iter=20,
+    scoring='r2',
+    cv=3,
+    random_state=42,
+    n_jobs=-1,
+    verbose=0
+)
+
+models["Random Forest (Tuned)"] = Pipeline([
+    ("prep", preprocessor),
+    ("rf_search", rf_search)
+])
+
+# === Add XGBoost with Hyperparameter Tuning ===
+xgb_model = xgb.XGBRegressor(objective='reg:squarederror', random_state=42)
+
+xgb_param_dist = {
+    'n_estimators': [50, 100, 200],
+    'max_depth': [3, 5, 7],
+    'learning_rate': [0.01, 0.1, 0.2],
+    'subsample': [0.6, 0.8, 1.0],
+    'colsample_bytree': [0.6, 0.8, 1.0],
+    'reg_alpha': [0, 0.1, 0.5],
+    'reg_lambda': [1, 1.5, 2]
+}
+
+xgb_search = RandomizedSearchCV(
+    xgb_model,
+    param_distributions=xgb_param_dist,
+    n_iter=20,
+    scoring='r2',
+    cv=3,
+    random_state=42,
+    n_jobs=-1,
+    verbose=0
+)
+
+models["XGBoost (Tuned)"] = Pipeline([
+    ("prep", preprocessor),
+    ("xgb_search", xgb_search)
+])
 
 # Train & Predict
 predictions = {}
 metrics = []
 for name, model in models.items():
+    st.write(f"Training model: {name} ...")  # show progress
+
     Xtr = X_train_s if "Simple" in name else X_train_m
     Xte = X_test_s if "Simple" in name else X_test_m
+
     model.fit(Xtr, y_train)
-    y_pred = model.predict(Xte)
+
+    # For RandomizedSearchCV inside pipeline, get best estimator to predict
+    if "Tuned" in name:
+        y_pred = model.named_steps[list(model.named_steps.keys())[-1]].predict(model.named_steps["prep"].transform(Xte))
+    else:
+        y_pred = model.predict(Xte)
+
     predictions[name] = (Xte.copy(), y_pred)
     metrics.append([
         name,
@@ -2032,4 +2217,3 @@ for name, (Xte, y_pred) in predictions.items():
     fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name=name))
 fig.update_layout(title="Actual vs Predicted Scores", xaxis_title="Actual", yaxis_title="Predicted")
 st.plotly_chart(fig, use_container_width=True)
-
