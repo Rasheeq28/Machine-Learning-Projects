@@ -3063,7 +3063,7 @@
 # st.dataframe(test_metrics_df.set_index("Model"))
 
 
-# repeat kfold
+# repeat kfold-ANS
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -3076,7 +3076,41 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import plotly.graph_objects as go
 import warnings
 
-# Suppress the UserWarning from ColumnTransformer when a list is empty
+# # Suppress the UserWarning from ColumnTransformer when a list is empty
+# warnings.filterwarnings("ignore", category=UserWarning)
+#
+# st.set_page_config(page_title="Student Score Predictor", layout="wide")
+# st.title("📊 Student Score Predictor")
+#
+# # Load dataset
+# csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
+# df_raw = pd.read_csv(csv_url)
+# df = df_raw.copy()
+#
+# # Fill missing values with mode (most frequent) for each column
+# for col in df.columns:
+#     mode_val = df[col].mode()
+#     if not mode_val.empty:
+#         df[col].fillna(mode_val[0], inplace=True)
+#     else:
+#         df[col].fillna(method='ffill', inplace=True)
+#
+# target = "Exam_Score"
+#
+# # Define features
+# features = [
+#     "Hours_Studied", "Attendance", "Parental_Involvement", "Access_to_Resources",
+#     "Extracurricular_Activities", "Sleep_Hours", "Previous_Scores",
+#     "Motivation_Level", "Internet_Access", "Tutoring_Sessions",
+#     "Family_Income", "Teacher_Quality", "School_Type", "Peer_Influence",
+#     "Physical_Activity", "Learning_Disabilities", "Parental_Education_Level",
+#     "Distance_from_Home", "Gender"
+# ]
+# features = [f for f in features if f in df.columns]
+#
+# X = df[features]
+# y = df[target]
+
 warnings.filterwarnings("ignore", category=UserWarning)
 
 st.set_page_config(page_title="Student Score Predictor", layout="wide")
@@ -3087,13 +3121,16 @@ csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerf
 df_raw = pd.read_csv(csv_url)
 df = df_raw.copy()
 
-# Fill missing values with mode (most frequent) for each column
-for col in df.columns:
-    mode_val = df[col].mode()
-    if not mode_val.empty:
-        df[col].fillna(mode_val[0], inplace=True)
-    else:
-        df[col].fillna(method='ffill', inplace=True)
+# --- NEW: Advanced Missing Value Imputation ---
+numeric_cols = df.select_dtypes(include=["int64", "float64"]).columns
+cat_cols = df.select_dtypes(include=["object"]).columns
+
+num_imputer = SimpleImputer(strategy='median')
+cat_imputer = SimpleImputer(strategy='most_frequent')
+
+df[numeric_cols] = num_imputer.fit_transform(df[numeric_cols])
+df[cat_cols] = cat_imputer.fit_transform(df[cat_cols])
+# ---------------------------------------------------
 
 target = "Exam_Score"
 
@@ -3110,6 +3147,7 @@ features = [f for f in features if f in df.columns]
 
 X = df[features]
 y = df[target]
+
 
 # --- REFINED PREPROCESSING PIPELINES ---
 numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
