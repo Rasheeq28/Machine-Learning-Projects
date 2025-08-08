@@ -2301,16 +2301,22 @@ metrics = []
 st.subheader("Model Performance with Cross-Validation")
 cv_results = []
 for name, model in models.items():
-    # We use the full dataset for cross-validation
-    scores = cross_val_score(model, X, y, cv=5, scoring='r2')
+    # Use the full dataset for cross-validation
+    r2_scores = cross_val_score(model, X, y, cv=5, scoring='r2')
     mae_scores = -cross_val_score(model, X, y, cv=5, scoring='neg_mean_absolute_error')
+    mse_scores = -cross_val_score(model, X, y, cv=5, scoring='neg_mean_squared_error')
+    rmse_scores = np.sqrt(mse_scores)
+
     cv_results.append([
         name,
-        np.mean(scores),
-        np.std(scores),
-        np.mean(mae_scores)
+        np.mean(r2_scores),
+        np.std(r2_scores),
+        np.mean(mae_scores),
+        np.mean(mse_scores),
+        np.mean(rmse_scores)
     ])
-cv_df = pd.DataFrame(cv_results, columns=["Model", "Mean CV R²", "Std Dev CV R²", "Mean CV MAE"])
+cv_df = pd.DataFrame(cv_results,
+                     columns=["Model", "Mean CV R²", "Std Dev CV R²", "Mean CV MAE", "Mean CV MSE", "Mean CV RMSE"])
 st.dataframe(cv_df.set_index("Model"))
 
 # Train final models on the full training set for plotting
