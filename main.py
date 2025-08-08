@@ -2097,7 +2097,18 @@ for feat in interaction_features:
 
 # Example 2: Interaction between Family_Income and Access_to_Resources
 if 'Family_Income' in df.columns and 'Access_to_Resources' in df.columns:
-    df['Income_x_Resources'] = df['Family_Income'] * df['Access_to_Resources']
+    # Convert to numeric, coerce errors to NaN
+    df['Family_Income_num'] = pd.to_numeric(df['Family_Income'], errors='coerce')
+    df['Access_to_Resources_num'] = pd.to_numeric(df['Access_to_Resources'], errors='coerce')
+
+    # Fill NaNs with 0 or mode or median (choose what makes sense)
+    df['Family_Income_num'].fillna(df['Family_Income_num'].mode()[0], inplace=True)
+    df['Access_to_Resources_num'].fillna(df['Access_to_Resources_num'].mode()[0], inplace=True)
+
+    # Create interaction feature
+    df['Income_x_Resources'] = df['Family_Income_num'] * df['Access_to_Resources_num']
+
+    # Optionally drop the temporary numeric columns later if you want
 
 # Example 3: Binning Distance_from_Home into categories (close, medium, far)
 if 'Distance_from_Home' in df.columns:
