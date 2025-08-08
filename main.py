@@ -3712,23 +3712,258 @@
 
 
 # 5 k fold
+# import streamlit as st
+# import pandas as pd
+# import numpy as np
+# from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV, KFold
+# from sklearn.linear_model import LinearRegression, Ridge
+# from sklearn.preprocessing import PolynomialFeatures, RobustScaler, OneHotEncoder, OrdinalEncoder
+# from sklearn.pipeline import Pipeline
+# from sklearn.compose import ColumnTransformer
+# from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+# import plotly.graph_objects as go
+# import warnings
+#
+# # Suppress the UserWarning from ColumnTransformer when a list is empty
+# warnings.filterwarnings("ignore", category=UserWarning)
+#
+# st.set_page_config(page_title="Student Score Predictor", layout="wide")
+# st.title("📊 Student Score Predictor")
+#
+# # Load dataset
+# csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
+# df_raw = pd.read_csv(csv_url)
+# df = df_raw.copy()
+#
+# # Fill missing values with mode (most frequent) for each column
+# for col in df.columns:
+#     mode_val = df[col].mode()
+#     if not mode_val.empty:
+#         df[col].fillna(mode_val[0], inplace=True)
+#     else:
+#         df[col].fillna(method='ffill', inplace=True)
+#
+# target = "Exam_Score"
+#
+# # Define features
+# features = [
+#     "Hours_Studied", "Attendance", "Parental_Involvement", "Access_to_Resources",
+#     "Extracurricular_Activities", "Sleep_Hours", "Previous_Scores",
+#     "Motivation_Level", "Internet_Access", "Tutoring_Sessions",
+#     "Family_Income", "Teacher_Quality", "School_Type", "Peer_Influence",
+#     "Physical_Activity", "Learning_Disabilities", "Parental_Education_Level",
+#     "Distance_from_Home", "Gender"
+# ]
+# features = [f for f in features if f in df.columns]
+#
+# X = df[features]
+# y = df[target]
+#
+# # --- REFINED PREPROCESSING PIPELINES with Ordinal Encoding ---
+# numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
+# cat_cols = X.select_dtypes(include=["object"]).columns.tolist()
+#
+# # Define columns for specific transformers
+# ordinal_cols = ["Parental_Involvement", "Motivation_Level"]
+# onehot_cols = [col for col in cat_cols if col not in ordinal_cols]
+# poly_features_list = ["Hours_Studied", "Previous_Scores", "Sleep_Hours", "Attendance"]
+#
+# # Define the order for ordinal features based on inspection
+# ordinal_categories = [
+#     ['Low', 'Medium', 'High'], # Parental_Involvement
+#     ['Low', 'Medium', 'High']  # Motivation_Level
+# ]
+#
+# # Pipelines for different data types
+# numeric_poly_transformer = Pipeline(steps=[
+#     ('poly', PolynomialFeatures(degree=3, include_bias=False)),
+#     ('scaler', RobustScaler())
+# ])
+#
+# numeric_scaler = Pipeline(steps=[
+#     ('scaler', RobustScaler())
+# ])
+#
+# ordinal_transformer = Pipeline(steps=[
+#     ('ordinal', OrdinalEncoder(categories=ordinal_categories, handle_unknown='use_encoded_value', unknown_value=-1))
+# ])
+#
+# onehot_transformer = Pipeline(steps=[
+#     ('onehot', OneHotEncoder(handle_unknown='ignore'))
+# ])
+#
+# # Combine transformers into ColumnTransformers
+# preprocessor_poly = ColumnTransformer(
+#     transformers=[
+#         ('poly_num', numeric_poly_transformer, poly_features_list),
+#         ('other_num', numeric_scaler, [col for col in numeric_cols if col not in poly_features_list]),
+#         ('ordinal', ordinal_transformer, ordinal_cols),
+#         ('onehot', onehot_transformer, onehot_cols)
+#     ],
+#     remainder='passthrough'
+# )
+#
+# preprocessor_linear = ColumnTransformer(
+#     transformers=[
+#         ('scaler', RobustScaler(), numeric_cols),
+#         ('ordinal', ordinal_transformer, ordinal_cols),
+#         ('onehot', onehot_transformer, onehot_cols)
+#     ],
+#     remainder='passthrough'
+# )
+#
+# # Train-test split
+# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+#
+# # --- HYPERPARAMETER TUNING ---
+# st.subheader("Hyperparameter Tuning with GridSearchCV")
+#
+# # Expanded param_grid for polynomial model to tune both alpha and degree
+# param_grid_poly = {
+#     'preprocessor__poly_num__poly__degree': [1, 2, 3],
+#     'regressor__alpha': np.logspace(-4, 4, 10)
+# }
+# param_grid_linear = {'regressor__alpha': np.logspace(-4, 4, 10)}
+#
+# multi_linear_pipeline = Pipeline(steps=[
+#     ('preprocessor', preprocessor_linear),
+#     ('regressor', Ridge())
+# ])
+#
+# poly_pipeline = Pipeline(steps=[
+#     ('preprocessor', preprocessor_poly),
+#     ('regressor', Ridge())
+# ])
+#
+# # Changed from RepeatedKFold to KFold with 5 splits
+# cv_strategy = KFold(n_splits=5, shuffle=True, random_state=42)
+#
+# tuned_multi_linear = GridSearchCV(multi_linear_pipeline, param_grid_linear, cv=cv_strategy, scoring='r2', verbose=1)
+# tuned_poly = GridSearchCV(poly_pipeline, param_grid_poly, cv=cv_strategy, scoring='r2', verbose=1)
+#
+# tuned_multi_linear.fit(X, y)
+# tuned_poly.fit(X, y)
+#
+# best_linear_params = tuned_multi_linear.best_params_
+# best_linear_score = tuned_multi_linear.best_score_
+# best_poly_params = tuned_poly.best_params_
+# best_poly_score = tuned_poly.best_score_
+#
+# st.write(f"Best Alpha for Multi-Feature Linear Regression (Ridge): **{best_linear_params.get('regressor__alpha'):.4f}** (R²: {best_linear_score:.4f})")
+# st.write(f"Best parameters for Polynomial Model: **{best_poly_params}** (R²: {best_poly_score:.4f})")
+#
+# # Define models with the best hyperparameters
+# models = {
+#     "Simple Linear Regression": Pipeline(steps=[
+#         ('scaler', RobustScaler()),
+#         ('regressor', LinearRegression())
+#     ]),
+#     "Multi-Feature Linear Regression (Tuned Ridge)": tuned_multi_linear.best_estimator_,
+#     "Multi-Feature Polynomial (Tuned Ridge)": tuned_poly.best_estimator_
+# }
+#
+# # --- CROSS-VALIDATION RESULTS with KFold ---
+# st.subheader("Model Performance with Cross-Validation")
+# cv_results = []
+# r2_scores_dict = {}
+#
+# for name, model in models.items():
+#     if name == "Simple Linear Regression":
+#         r2_scores = cross_val_score(model, X[["Hours_Studied"]], y, cv=cv_strategy, scoring='r2')
+#         mae_scores = -cross_val_score(model, X[["Hours_Studied"]], y, cv=cv_strategy, scoring='neg_mean_absolute_error')
+#         mse_scores = -cross_val_score(model, X[["Hours_Studied"]], y, cv=cv_strategy, scoring='neg_mean_squared_error')
+#         rmse_scores = np.sqrt(mse_scores)
+#     else:
+#         r2_scores = cross_val_score(model, X, y, cv=cv_strategy, scoring='r2')
+#         mae_scores = -cross_val_score(model, X, y, cv=cv_strategy, scoring='neg_mean_absolute_error')
+#         mse_scores = -cross_val_score(model, X, y, cv=cv_strategy, scoring='neg_mean_squared_error')
+#         rmse_scores = np.sqrt(mse_scores)
+#
+#     r2_scores_dict[name] = r2_scores
+#     cv_results.append([
+#         name,
+#         np.mean(r2_scores),
+#         np.std(r2_scores),
+#         np.mean(mae_scores),
+#         np.mean(mse_scores),
+#         np.mean(rmse_scores)
+#     ])
+#
+# cv_df = pd.DataFrame(cv_results,
+#                      columns=["Model", "Mean CV R²", "Std Dev CV R²", "Mean CV MAE", "Mean CV MSE", "Mean CV RMSE"])
+# st.dataframe(cv_df.set_index("Model"))
+#
+# # --- VISUALIZATION OF CROSS-VALIDATION RESULTS ---
+# st.subheader("R² Scores for Each Cross-Validation Fold")
+# fig_cv = go.Figure()
+# for name, scores in r2_scores_dict.items():
+#     fig_cv.add_trace(go.Box(y=scores, name=name))
+#
+# fig_cv.update_layout(title="R² Scores Distribution across 5 Folds",
+#                      yaxis_title="R² Score",
+#                      showlegend=False)
+# st.plotly_chart(fig_cv, use_container_width=True)
+#
+# # Train final models and plot Actual vs Predicted
+# st.subheader("Actual vs Predicted Scores on Test Set")
+# fig = go.Figure()
+# fig.add_trace(go.Scatter(x=y_test, y=y_test, mode="lines", name="Perfect Fit", line=dict(color="white")))
+#
+# predictions = {}
+# for name, model in models.items():
+#     if name == "Simple Linear Regression":
+#         X_train_specific = X_train[["Hours_Studied"]]
+#         X_test_specific = X_test[["Hours_Studied"]]
+#     else:
+#         X_train_specific = X_train
+#         X_test_specific = X_test
+#
+#     model.fit(X_train_specific, y_train)
+#     y_pred = model.predict(X_test_specific)
+#     predictions[name] = y_pred
+#     fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name=name))
+#
+# fig.update_layout(title="Actual vs Predicted Scores", xaxis_title="Actual", yaxis_title="Predicted")
+# st.plotly_chart(fig, use_container_width=True)
+#
+# # Calculate and show test set performance metrics
+# st.subheader("Test Set Performance Metrics")
+#
+# test_metrics = []
+# for name, y_pred in predictions.items():
+#     r2 = r2_score(y_test, y_pred)
+#     mae = mean_absolute_error(y_test, y_pred)
+#     mse = mean_squared_error(y_test, y_pred)
+#     rmse = np.sqrt(mse)
+#
+#     test_metrics.append([name, r2, mae, mse, rmse])
+#
+# test_metrics_df = pd.DataFrame(test_metrics,
+#                                columns=["Model", "R²", "MAE", "MSE", "RMSE"])
+# st.dataframe(test_metrics_df.set_index("Model"))
+
+
+# classification
 import streamlit as st
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV, KFold
-from sklearn.linear_model import LinearRegression, Ridge
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import PolynomialFeatures, RobustScaler, OneHotEncoder, OrdinalEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import accuracy_score, classification_report
 import plotly.graph_objects as go
 import warnings
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Suppress the UserWarning from ColumnTransformer when a list is empty
 warnings.filterwarnings("ignore", category=UserWarning)
 
 st.set_page_config(page_title="Student Score Predictor", layout="wide")
-st.title("📊 Student Score Predictor")
+st.title("📊 Student Score Predictor - Grade Classification")
 
 # Load dataset
 csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
@@ -3743,7 +3978,23 @@ for col in df.columns:
     else:
         df[col].fillna(method='ffill', inplace=True)
 
-target = "Exam_Score"
+
+# Function to convert scores to grade categories
+def convert_to_grade(score):
+    if score >= 90:
+        return 'Excellent'
+    elif score >= 80:
+        return 'Good'
+    elif score >= 70:
+        return 'Average'
+    else:
+        return 'Poor'
+
+
+# Apply the conversion to create a new target column
+df['Grade'] = df['Exam_Score'].apply(convert_to_grade)
+
+target = "Grade"
 
 # Define features
 features = [
@@ -3770,13 +4021,13 @@ poly_features_list = ["Hours_Studied", "Previous_Scores", "Sleep_Hours", "Attend
 
 # Define the order for ordinal features based on inspection
 ordinal_categories = [
-    ['Low', 'Medium', 'High'], # Parental_Involvement
+    ['Low', 'Medium', 'High'],  # Parental_Involvement
     ['Low', 'Medium', 'High']  # Motivation_Level
 ]
 
 # Pipelines for different data types
 numeric_poly_transformer = Pipeline(steps=[
-    ('poly', PolynomialFeatures(degree=3, include_bias=False)),
+    ('poly', PolynomialFeatures(degree=2, include_bias=False)),
     ('scaler', RobustScaler())
 ])
 
@@ -3818,126 +4069,114 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 # --- HYPERPARAMETER TUNING ---
 st.subheader("Hyperparameter Tuning with GridSearchCV")
 
-# Expanded param_grid for polynomial model to tune both alpha and degree
-param_grid_poly = {
-    'preprocessor__poly_num__poly__degree': [1, 2, 3],
-    'regressor__alpha': np.logspace(-4, 4, 10)
-}
-param_grid_linear = {'regressor__alpha': np.logspace(-4, 4, 10)}
+# Parameter grids for classification models
+param_grid_logreg = {'classifier__C': np.logspace(-4, 4, 10)}
+param_grid_rf = {'classifier__n_estimators': [50, 100, 200], 'classifier__max_depth': [3, 5, 10]}
 
-multi_linear_pipeline = Pipeline(steps=[
+logreg_pipeline = Pipeline(steps=[
     ('preprocessor', preprocessor_linear),
-    ('regressor', Ridge())
+    ('classifier', LogisticRegression(solver='liblinear', random_state=42))
 ])
 
-poly_pipeline = Pipeline(steps=[
+rf_pipeline = Pipeline(steps=[
     ('preprocessor', preprocessor_poly),
-    ('regressor', Ridge())
+    ('classifier', RandomForestClassifier(random_state=42))
 ])
 
-# Changed from RepeatedKFold to KFold with 5 splits
 cv_strategy = KFold(n_splits=5, shuffle=True, random_state=42)
 
-tuned_multi_linear = GridSearchCV(multi_linear_pipeline, param_grid_linear, cv=cv_strategy, scoring='r2', verbose=1)
-tuned_poly = GridSearchCV(poly_pipeline, param_grid_poly, cv=cv_strategy, scoring='r2', verbose=1)
+tuned_logreg = GridSearchCV(logreg_pipeline, param_grid_logreg, cv=cv_strategy, scoring='accuracy', verbose=1)
+tuned_rf = GridSearchCV(rf_pipeline, param_grid_rf, cv=cv_strategy, scoring='accuracy', verbose=1)
 
-tuned_multi_linear.fit(X, y)
-tuned_poly.fit(X, y)
+tuned_logreg.fit(X, y)
+tuned_rf.fit(X, y)
 
-best_linear_params = tuned_multi_linear.best_params_
-best_linear_score = tuned_multi_linear.best_score_
-best_poly_params = tuned_poly.best_params_
-best_poly_score = tuned_poly.best_score_
+best_logreg_params = tuned_logreg.best_params_
+best_logreg_score = tuned_logreg.best_score_
+best_rf_params = tuned_rf.best_params_
+best_rf_score = tuned_rf.best_score_
 
-st.write(f"Best Alpha for Multi-Feature Linear Regression (Ridge): **{best_linear_params.get('regressor__alpha'):.4f}** (R²: {best_linear_score:.4f})")
-st.write(f"Best parameters for Polynomial Model: **{best_poly_params}** (R²: {best_poly_score:.4f})")
+st.write(
+    f"Best C for Logistic Regression: **{best_logreg_params.get('classifier__C'):.4f}** (Accuracy: {best_logreg_score:.4f})")
+st.write(f"Best parameters for Random Forest: **{best_rf_params}** (Accuracy: {best_rf_score:.4f})")
 
 # Define models with the best hyperparameters
 models = {
-    "Simple Linear Regression": Pipeline(steps=[
-        ('scaler', RobustScaler()),
-        ('regressor', LinearRegression())
-    ]),
-    "Multi-Feature Linear Regression (Tuned Ridge)": tuned_multi_linear.best_estimator_,
-    "Multi-Feature Polynomial (Tuned Ridge)": tuned_poly.best_estimator_
+    "Logistic Regression (Tuned)": tuned_logreg.best_estimator_,
+    "Random Forest (Tuned)": tuned_rf.best_estimator_
 }
 
 # --- CROSS-VALIDATION RESULTS with KFold ---
 st.subheader("Model Performance with Cross-Validation")
 cv_results = []
-r2_scores_dict = {}
+accuracy_scores_dict = {}
 
 for name, model in models.items():
-    if name == "Simple Linear Regression":
-        r2_scores = cross_val_score(model, X[["Hours_Studied"]], y, cv=cv_strategy, scoring='r2')
-        mae_scores = -cross_val_score(model, X[["Hours_Studied"]], y, cv=cv_strategy, scoring='neg_mean_absolute_error')
-        mse_scores = -cross_val_score(model, X[["Hours_Studied"]], y, cv=cv_strategy, scoring='neg_mean_squared_error')
-        rmse_scores = np.sqrt(mse_scores)
-    else:
-        r2_scores = cross_val_score(model, X, y, cv=cv_strategy, scoring='r2')
-        mae_scores = -cross_val_score(model, X, y, cv=cv_strategy, scoring='neg_mean_absolute_error')
-        mse_scores = -cross_val_score(model, X, y, cv=cv_strategy, scoring='neg_mean_squared_error')
-        rmse_scores = np.sqrt(mse_scores)
+    accuracy_scores = cross_val_score(model, X, y, cv=cv_strategy, scoring='accuracy')
 
-    r2_scores_dict[name] = r2_scores
+    accuracy_scores_dict[name] = accuracy_scores
     cv_results.append([
         name,
-        np.mean(r2_scores),
-        np.std(r2_scores),
-        np.mean(mae_scores),
-        np.mean(mse_scores),
-        np.mean(rmse_scores)
+        np.mean(accuracy_scores),
+        np.std(accuracy_scores)
     ])
 
 cv_df = pd.DataFrame(cv_results,
-                     columns=["Model", "Mean CV R²", "Std Dev CV R²", "Mean CV MAE", "Mean CV MSE", "Mean CV RMSE"])
+                     columns=["Model", "Mean CV Accuracy", "Std Dev CV Accuracy"])
 st.dataframe(cv_df.set_index("Model"))
 
 # --- VISUALIZATION OF CROSS-VALIDATION RESULTS ---
-st.subheader("R² Scores for Each Cross-Validation Fold")
+st.subheader("Accuracy Scores for Each Cross-Validation Fold")
 fig_cv = go.Figure()
-for name, scores in r2_scores_dict.items():
+for name, scores in accuracy_scores_dict.items():
     fig_cv.add_trace(go.Box(y=scores, name=name))
 
-fig_cv.update_layout(title="R² Scores Distribution across 5 Folds",
-                     yaxis_title="R² Score",
+fig_cv.update_layout(title="Accuracy Scores Distribution across 5 Folds",
+                     yaxis_title="Accuracy Score",
                      showlegend=False)
 st.plotly_chart(fig_cv, use_container_width=True)
 
-# Train final models and plot Actual vs Predicted
-st.subheader("Actual vs Predicted Scores on Test Set")
-fig = go.Figure()
-fig.add_trace(go.Scatter(x=y_test, y=y_test, mode="lines", name="Perfect Fit", line=dict(color="white")))
+# Train final models and plot Actual vs Predicted Grade Counts
+st.subheader("Actual vs Predicted Grade Counts on Test Set")
+
+fig, axes = plt.subplots(1, 2, figsize=(15, 6))
+
+y_test_counts = y_test.value_counts().sort_index()
+sns.barplot(x=y_test_counts.index, y=y_test_counts.values, ax=axes[0], palette="viridis")
+axes[0].set_title('Actual Grade Counts')
+axes[0].set_xlabel('Grade')
+axes[0].set_ylabel('Count')
 
 predictions = {}
 for name, model in models.items():
-    if name == "Simple Linear Regression":
-        X_train_specific = X_train[["Hours_Studied"]]
-        X_test_specific = X_test[["Hours_Studied"]]
-    else:
-        X_train_specific = X_train
-        X_test_specific = X_test
-
-    model.fit(X_train_specific, y_train)
-    y_pred = model.predict(X_test_specific)
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
     predictions[name] = y_pred
-    fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name=name))
 
-fig.update_layout(title="Actual vs Predicted Scores", xaxis_title="Actual", yaxis_title="Predicted")
-st.plotly_chart(fig, use_container_width=True)
+    y_pred_counts = pd.Series(y_pred).value_counts().sort_index()
+    sns.barplot(x=y_pred_counts.index, y=y_pred_counts.values, ax=axes[1], palette="plasma")
+    axes[1].set_title(f'Predicted Grade Counts ({name})')
+    axes[1].set_xlabel('Grade')
+    axes[1].set_ylabel('Count')
+
+st.pyplot(fig)
 
 # Calculate and show test set performance metrics
 st.subheader("Test Set Performance Metrics")
 
 test_metrics = []
 for name, y_pred in predictions.items():
-    r2 = r2_score(y_test, y_pred)
-    mae = mean_absolute_error(y_test, y_pred)
-    mse = mean_squared_error(y_test, y_pred)
-    rmse = np.sqrt(mse)
+    accuracy = accuracy_score(y_test, y_pred)
+    report = classification_report(y_test, y_pred, output_dict=True)
 
-    test_metrics.append([name, r2, mae, mse, rmse])
+    # Extract key metrics from the classification report
+    precision = report['weighted avg']['precision']
+    recall = report['weighted avg']['recall']
+    f1_score = report['weighted avg']['f1-score']
+
+    test_metrics.append([name, accuracy, precision, recall, f1_score])
 
 test_metrics_df = pd.DataFrame(test_metrics,
-                               columns=["Model", "R²", "MAE", "MSE", "RMSE"])
+                               columns=["Model", "Accuracy", "Weighted Precision", "Weighted Recall",
+                                        "Weighted F1-Score"])
 st.dataframe(test_metrics_df.set_index("Model"))
