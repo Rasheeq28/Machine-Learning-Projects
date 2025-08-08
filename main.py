@@ -2228,9 +2228,6 @@ features = [
 # Filter features actually in dataframe
 features = [f for f in features if f in df.columns]
 
-# The original feature engineering is removed as PolynomialFeatures will handle interactions for numeric columns
-# and ColumnTransformer is more robust for categorical features.
-
 X = df[features]
 y = df[target]
 
@@ -2238,20 +2235,16 @@ y = df[target]
 numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
 cat_cols = X.select_dtypes(include=["object"]).columns.tolist()
 
-# Define the preprocessing steps
-# We create separate pipelines for numeric and categorical data to apply different transformations.
-# The numeric pipeline now includes PolynomialFeatures before scaling.
+# Define preprocessing pipelines
 numeric_poly_transformer = Pipeline(steps=[
     ('poly', PolynomialFeatures(degree=2, include_bias=False)),
     ('scaler', StandardScaler())
 ])
 
-# The categorical pipeline only needs one-hot encoding.
 categorical_transformer = Pipeline(steps=[
     ('onehot', OneHotEncoder(handle_unknown='ignore'))
 ])
 
-# Create a ColumnTransformer that applies the correct pipelines to the correct columns.
 preprocessor_poly = ColumnTransformer(
     transformers=[
         ('num', numeric_poly_transformer, numeric_cols),
@@ -2260,7 +2253,6 @@ preprocessor_poly = ColumnTransformer(
     remainder='passthrough'
 )
 
-# For the non-polynomial model, we use a simpler preprocessor.
 preprocessor_linear = ColumnTransformer(
     transformers=[
         ('scaler', StandardScaler(), numeric_cols),
@@ -2272,14 +2264,14 @@ preprocessor_linear = ColumnTransformer(
 # Train-test split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Models dictionary
+# Define models
 models = {
     "Simple Linear Regression": Pipeline(steps=[
         ('preprocessor', ColumnTransformer(
             transformers=[
                 ('scaler', StandardScaler(), ['Hours_Studied'])
             ],
-            remainder='drop'  # Drop other columns not needed for this simple model
+            remainder='drop'
         )),
         ('regressor', LinearRegression())
     ]),
@@ -2293,15 +2285,10 @@ models = {
     ])
 }
 
-# Train, predict, and collect metrics
-predictions = {}
-metrics = []
-
-# Use cross-validation to provide more robust performance estimates
+# Cross-validation results
 st.subheader("Model Performance with Cross-Validation")
 cv_results = []
 for name, model in models.items():
-    # Use the full dataset for cross-validation
     r2_scores = cross_val_score(model, X, y, cv=5, scoring='r2')
     mae_scores = -cross_val_score(model, X, y, cv=5, scoring='neg_mean_absolute_error')
     mse_scores = -cross_val_score(model, X, y, cv=5, scoring='neg_mean_squared_error')
@@ -2315,22 +2302,40 @@ for name, model in models.items():
         np.mean(mse_scores),
         np.mean(rmse_scores)
     ])
+
 cv_df = pd.DataFrame(cv_results,
                      columns=["Model", "Mean CV R²", "Std Dev CV R²", "Mean CV MAE", "Mean CV MSE", "Mean CV RMSE"])
 st.dataframe(cv_df.set_index("Model"))
 
-# Train final models on the full training set for plotting
+# Train final models and plot Actual vs Predicted
 st.subheader("Actual vs Predicted Scores on Test Set")
 fig = go.Figure()
 fig.add_trace(go.Scatter(x=y_test, y=y_test, mode="lines", name="Perfect Fit", line=dict(color="white")))
 
+predictions = {}
 for name, model in models.items():
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
-
-    # Store predictions for plotting
     predictions[name] = y_pred
     fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name=name))
 
 fig.update_layout(title="Actual vs Predicted Scores", xaxis_title="Actual", yaxis_title="Predicted")
 st.plotly_chart(fig, use_container_width=True)
+
+# Calculate and show test set performance metrics
+st.subheader("Test Set Performance Metrics")
+
+test_metrics = []
+for name, model in models.items():
+    y_pred = predictions[name]
+    r2 = r2_score(y_test, y_pred)
+    mae = mean_absolute_error(y_test, y_pred)
+    mse = mean_squared_error(y_test, y_pred)
+    rmse = np.sqrt(mse)
+
+    test_metrics.append([name, r2, mae, mse, rmse])
+
+test_metrics_df = pd.DataFrame(test_metrics,
+                               columns=["Model", "R²", "MAE", "MSE", "RMSE"])
+st.dataframe(test_metrics_df.set_index("Model"))
+
