@@ -2032,7 +2032,6 @@
 #     fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name=name))
 # fig.update_layout(title="Actual vs Predicted Scores", xaxis_title="Actual", yaxis_title="Predicted")
 # st.plotly_chart(fig, use_container_width=True)
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -2101,14 +2100,20 @@ if 'Family_Income' in df.columns and 'Access_to_Resources' in df.columns:
     df['Family_Income_num'] = pd.to_numeric(df['Family_Income'], errors='coerce')
     df['Access_to_Resources_num'] = pd.to_numeric(df['Access_to_Resources'], errors='coerce')
 
-    # Fill NaNs with 0 or mode or median (choose what makes sense)
-    df['Family_Income_num'].fillna(df['Family_Income_num'].mode()[0], inplace=True)
-    df['Access_to_Resources_num'].fillna(df['Access_to_Resources_num'].mode()[0], inplace=True)
+    # Fill NaNs safely with mode or fallback 0
+    fam_income_mode = df['Family_Income_num'].mode()
+    fill_value_fam = fam_income_mode[0] if not fam_income_mode.empty else 0
+    df['Family_Income_num'].fillna(fill_value_fam, inplace=True)
+
+    acc_res_mode = df['Access_to_Resources_num'].mode()
+    fill_value_acc = acc_res_mode[0] if not acc_res_mode.empty else 0
+    df['Access_to_Resources_num'].fillna(fill_value_acc, inplace=True)
 
     # Create interaction feature
     df['Income_x_Resources'] = df['Family_Income_num'] * df['Access_to_Resources_num']
 
-    # Optionally drop the temporary numeric columns later if you want
+    # Drop temporary numeric columns
+    df.drop(columns=['Family_Income_num', 'Access_to_Resources_num'], inplace=True)
 
 # Example 3: Binning Distance_from_Home into categories (close, medium, far)
 if 'Distance_from_Home' in df.columns:
@@ -2193,3 +2198,4 @@ for name, (Xte, y_pred) in predictions.items():
     fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name=name))
 fig.update_layout(title="Actual vs Predicted Scores", xaxis_title="Actual", yaxis_title="Predicted")
 st.plotly_chart(fig, use_container_width=True)
+
