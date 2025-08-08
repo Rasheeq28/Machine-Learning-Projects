@@ -2183,6 +2183,163 @@
 # st.plotly_chart(fig, use_container_width=True)
 
 # better polynomial
+# import streamlit as st
+# import pandas as pd
+# import numpy as np
+# from sklearn.model_selection import train_test_split, cross_val_score
+# from sklearn.linear_model import LinearRegression
+# from sklearn.preprocessing import PolynomialFeatures, StandardScaler, OneHotEncoder
+# from sklearn.pipeline import Pipeline
+# from sklearn.compose import ColumnTransformer
+# from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+# import plotly.graph_objects as go
+# import warnings
+#
+# # Suppress the UserWarning from ColumnTransformer when a list is empty
+# warnings.filterwarnings("ignore", category=UserWarning)
+#
+# st.set_page_config(page_title="Student Score Predictor", layout="wide")
+# st.title("📊 Student Score Predictor")
+#
+# # Load dataset
+# csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
+# df = pd.read_csv(csv_url)
+#
+# # Fill missing values with mode (most frequent) for each column
+# for col in df.columns:
+#     mode_val = df[col].mode()
+#     if not mode_val.empty:
+#         df[col].fillna(mode_val[0], inplace=True)
+#     else:
+#         df[col].fillna(method='ffill', inplace=True)
+#
+# target = "Exam_Score"
+#
+# # Define features
+# features = [
+#     "Hours_Studied", "Attendance", "Parental_Involvement", "Access_to_Resources",
+#     "Extracurricular_Activities", "Sleep_Hours", "Previous_Scores",
+#     "Motivation_Level", "Internet_Access", "Tutoring_Sessions",
+#     "Family_Income", "Teacher_Quality", "School_Type", "Peer_Influence",
+#     "Physical_Activity", "Learning_Disabilities", "Parental_Education_Level",
+#     "Distance_from_Home", "Gender"
+# ]
+#
+# # Filter features actually in dataframe
+# features = [f for f in features if f in df.columns]
+#
+# X = df[features]
+# y = df[target]
+#
+# # Separate numeric and categorical columns for preprocessing
+# numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
+# cat_cols = X.select_dtypes(include=["object"]).columns.tolist()
+#
+# # Define preprocessing pipelines
+# numeric_poly_transformer = Pipeline(steps=[
+#     ('poly', PolynomialFeatures(degree=2, include_bias=False)),
+#     ('scaler', StandardScaler())
+# ])
+#
+# categorical_transformer = Pipeline(steps=[
+#     ('onehot', OneHotEncoder(handle_unknown='ignore'))
+# ])
+#
+# preprocessor_poly = ColumnTransformer(
+#     transformers=[
+#         ('num', numeric_poly_transformer, numeric_cols),
+#         ('cat', categorical_transformer, cat_cols)
+#     ],
+#     remainder='passthrough'
+# )
+#
+# preprocessor_linear = ColumnTransformer(
+#     transformers=[
+#         ('scaler', StandardScaler(), numeric_cols),
+#         ('onehot', OneHotEncoder(handle_unknown='ignore'), cat_cols)
+#     ],
+#     remainder='passthrough'
+# )
+#
+# # Train-test split
+# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+#
+# # Define models
+# models = {
+#     "Simple Linear Regression": Pipeline(steps=[
+#         ('preprocessor', ColumnTransformer(
+#             transformers=[
+#                 ('scaler', StandardScaler(), ['Hours_Studied'])
+#             ],
+#             remainder='drop'
+#         )),
+#         ('regressor', LinearRegression())
+#     ]),
+#     "Multi-Feature Linear Regression": Pipeline(steps=[
+#         ('preprocessor', preprocessor_linear),
+#         ('regressor', LinearRegression())
+#     ]),
+#     "Multi-Feature Polynomial (deg=2)": Pipeline(steps=[
+#         ('preprocessor', preprocessor_poly),
+#         ('regressor', LinearRegression())
+#     ])
+# }
+#
+# # Cross-validation results
+# st.subheader("Model Performance with Cross-Validation")
+# cv_results = []
+# for name, model in models.items():
+#     r2_scores = cross_val_score(model, X, y, cv=5, scoring='r2')
+#     mae_scores = -cross_val_score(model, X, y, cv=5, scoring='neg_mean_absolute_error')
+#     mse_scores = -cross_val_score(model, X, y, cv=5, scoring='neg_mean_squared_error')
+#     rmse_scores = np.sqrt(mse_scores)
+#
+#     cv_results.append([
+#         name,
+#         np.mean(r2_scores),
+#         np.std(r2_scores),
+#         np.mean(mae_scores),
+#         np.mean(mse_scores),
+#         np.mean(rmse_scores)
+#     ])
+#
+# cv_df = pd.DataFrame(cv_results,
+#                      columns=["Model", "Mean CV R²", "Std Dev CV R²", "Mean CV MAE", "Mean CV MSE", "Mean CV RMSE"])
+# st.dataframe(cv_df.set_index("Model"))
+#
+# # Train final models and plot Actual vs Predicted
+# st.subheader("Actual vs Predicted Scores on Test Set")
+# fig = go.Figure()
+# fig.add_trace(go.Scatter(x=y_test, y=y_test, mode="lines", name="Perfect Fit", line=dict(color="white")))
+#
+# predictions = {}
+# for name, model in models.items():
+#     model.fit(X_train, y_train)
+#     y_pred = model.predict(X_test)
+#     predictions[name] = y_pred
+#     fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name=name))
+#
+# fig.update_layout(title="Actual vs Predicted Scores", xaxis_title="Actual", yaxis_title="Predicted")
+# st.plotly_chart(fig, use_container_width=True)
+#
+# # Calculate and show test set performance metrics
+# st.subheader("Test Set Performance Metrics")
+#
+# test_metrics = []
+# for name, model in models.items():
+#     y_pred = predictions[name]
+#     r2 = r2_score(y_test, y_pred)
+#     mae = mean_absolute_error(y_test, y_pred)
+#     mse = mean_squared_error(y_test, y_pred)
+#     rmse = np.sqrt(mse)
+#
+#     test_metrics.append([name, r2, mae, mse, rmse])
+#
+# test_metrics_df = pd.DataFrame(test_metrics,
+#                                columns=["Model", "R²", "MAE", "MSE", "RMSE"])
+# st.dataframe(test_metrics_df.set_index("Model"))
+
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -2235,16 +2392,19 @@ y = df[target]
 numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
 cat_cols = X.select_dtypes(include=["object"]).columns.tolist()
 
-# Define preprocessing pipelines
+# Define preprocessing pipelines for multi-feature models
+# The numeric pipeline applies PolynomialFeatures and then StandardScaler
 numeric_poly_transformer = Pipeline(steps=[
     ('poly', PolynomialFeatures(degree=2, include_bias=False)),
     ('scaler', StandardScaler())
 ])
 
+# The categorical pipeline applies OneHotEncoder
 categorical_transformer = Pipeline(steps=[
     ('onehot', OneHotEncoder(handle_unknown='ignore'))
 ])
 
+# ColumnTransformer for polynomial model
 preprocessor_poly = ColumnTransformer(
     transformers=[
         ('num', numeric_poly_transformer, numeric_cols),
@@ -2253,6 +2413,7 @@ preprocessor_poly = ColumnTransformer(
     remainder='passthrough'
 )
 
+# ColumnTransformer for linear model
 preprocessor_linear = ColumnTransformer(
     transformers=[
         ('scaler', StandardScaler(), numeric_cols),
@@ -2264,15 +2425,10 @@ preprocessor_linear = ColumnTransformer(
 # Train-test split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Define models
+# Define models with robust pipelines
 models = {
     "Simple Linear Regression": Pipeline(steps=[
-        ('preprocessor', ColumnTransformer(
-            transformers=[
-                ('scaler', StandardScaler(), ['Hours_Studied'])
-            ],
-            remainder='drop'
-        )),
+        ('scaler', StandardScaler()),
         ('regressor', LinearRegression())
     ]),
     "Multi-Feature Linear Regression": Pipeline(steps=[
@@ -2289,9 +2445,15 @@ models = {
 st.subheader("Model Performance with Cross-Validation")
 cv_results = []
 for name, model in models.items():
-    r2_scores = cross_val_score(model, X, y, cv=5, scoring='r2')
-    mae_scores = -cross_val_score(model, X, y, cv=5, scoring='neg_mean_absolute_error')
-    mse_scores = -cross_val_score(model, X, y, cv=5, scoring='neg_mean_squared_error')
+    # For the simple model, we need to pass only the "Hours_Studied" column
+    if name == "Simple Linear Regression":
+        X_cv = X[["Hours_Studied"]]
+    else:
+        X_cv = X
+
+    r2_scores = cross_val_score(model, X_cv, y, cv=5, scoring='r2')
+    mae_scores = -cross_val_score(model, X_cv, y, cv=5, scoring='neg_mean_absolute_error')
+    mse_scores = -cross_val_score(model, X_cv, y, cv=5, scoring='neg_mean_squared_error')
     rmse_scores = np.sqrt(mse_scores)
 
     cv_results.append([
@@ -2314,8 +2476,16 @@ fig.add_trace(go.Scatter(x=y_test, y=y_test, mode="lines", name="Perfect Fit", l
 
 predictions = {}
 for name, model in models.items():
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
+    # For the simple model, train on the single feature
+    if name == "Simple Linear Regression":
+        X_train_specific = X_train[["Hours_Studied"]]
+        X_test_specific = X_test[["Hours_Studied"]]
+    else:
+        X_train_specific = X_train
+        X_test_specific = X_test
+
+    model.fit(X_train_specific, y_train)
+    y_pred = model.predict(X_test_specific)
     predictions[name] = y_pred
     fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name=name))
 
@@ -2326,8 +2496,7 @@ st.plotly_chart(fig, use_container_width=True)
 st.subheader("Test Set Performance Metrics")
 
 test_metrics = []
-for name, model in models.items():
-    y_pred = predictions[name]
+for name, y_pred in predictions.items():
     r2 = r2_score(y_test, y_pred)
     mae = mean_absolute_error(y_test, y_pred)
     mse = mean_squared_error(y_test, y_pred)
