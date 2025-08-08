@@ -5255,7 +5255,7 @@ st.plotly_chart(fig_cv, use_container_width=True)
 # Train final models and plot Actual vs Predicted
 st.subheader("Actual vs Predicted Scores on Test Set")
 fig = go.Figure()
-fig.add_trace(go.Scatter(x=y_test, y=y_test, mode="lines", name="Perfect Fit", line=dict(color="black", dash='dot')))
+fig.add_trace(go.Scatter(x=y_test, y=y_test, mode="lines", name="Perfect Fit", line=dict(color="white", dash='dot')))
 
 predictions = {}
 for name, model in models.items():
