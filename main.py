@@ -2036,14 +2036,12 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler, OneHotEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.ensemble import RandomForestRegressor
-import xgboost as xgb
 import plotly.graph_objects as go
 
 st.set_page_config(page_title="Student Score Predictor", layout="wide")
@@ -2063,7 +2061,7 @@ for col in df.columns:
 
 target = "Exam_Score"
 
-# Features list
+# Features to use (including Hours_Studied and others you specified)
 features = [
     "Hours_Studied",
     "Attendance",
@@ -2086,33 +2084,65 @@ features = [
     "Gender"
 ]
 
+# Filter features that exist in dataset
 features = [f for f in features if f in df.columns]
 
-# === FEATURE ENGINEERING ===
-# Create interaction feature: Hours_Studied * Motivation_Level
-df['Study_Motivation'] = df['Hours_Studied'] * df['Motivation_Level']
-features.append('Study_Motivation')
+# ------------------ FEATURE ENGINEERING ------------------
 
-X = df[features]
+# Example 1: Interaction terms between Hours_Studied and some numeric features
+interaction_features = ['Motivation_Level', 'Attendance', 'Sleep_Hours', 'Previous_Scores']
+for feat in interaction_features:
+    if feat in df.columns:
+        df[f'Hours_Studied_x_{feat}'] = df['Hours_Studied'] * df[feat]
+
+# Example 2: Interaction between Family_Income and Access_to_Resources
+if 'Family_Income' in df.columns and 'Access_to_Resources' in df.columns:
+    df['Income_x_Resources'] = df['Family_Income'] * df['Access_to_Resources']
+
+# Example 3: Binning Distance_from_Home into categories (close, medium, far)
+if 'Distance_from_Home' in df.columns:
+    bins = [-1, 5, 15, 1000]
+    labels = ['Close', 'Medium', 'Far']
+    df['Distance_Category'] = pd.cut(df['Distance_from_Home'], bins=bins, labels=labels)
+
+# Example 4: Encode Gender as numeric if not numeric
+if 'Gender' in df.columns and df['Gender'].dtype == 'object':
+    df['Gender_Encoded'] = df['Gender'].map({'Male': 0, 'Female': 1})
+    # Use Gender_Encoded in place of Gender
+    features = [f if f != 'Gender' else 'Gender_Encoded' for f in features]
+
+# Add the newly created features to the feature list
+new_features = [f'Hours_Studied_x_{feat}' for feat in interaction_features if feat in df.columns]
+if 'Income_x_Resources' in df.columns:
+    new_features.append('Income_x_Resources')
+if 'Distance_Category' in df.columns:
+    new_features.append('Distance_Category')
+
+# Combine original and new features
+all_features = features + new_features
+
+# ------------------ END FEATURE ENGINEERING ------------------
+
+X = df[all_features]
 y = df[target]
 
-# Single feature dataset for comparison
+# For comparison, single feature dataset remains unchanged
 X_single = df[["Hours_Studied"]]
 
-# Split data
+# Split
 X_train_s, X_test_s, y_train, y_test = train_test_split(X_single, y, test_size=0.2, random_state=42)
 X_train_m, X_test_m, _, _ = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Preprocessing: numeric vs categorical
+# Preprocessing for multi-feature: separate numeric and categorical
 numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
-cat_cols = [c for c in features if c not in numeric_cols]
+cat_cols = [c for c in all_features if c not in numeric_cols]
 
 preprocessor = ColumnTransformer([
     ("num", StandardScaler(), numeric_cols),
     ("cat", OneHotEncoder(drop="first", handle_unknown="ignore"), cat_cols)
 ])
 
-# Define basic models
+# Define models
 models = {
     "Simple Linear": Pipeline([("lr", LinearRegression())]),
     "Multi-Feature Linear": Pipeline([("prep", preprocessor), ("lr", LinearRegression())]),
@@ -2121,82 +2151,17 @@ models = {
         ("prep", preprocessor),
         ("poly", PolynomialFeatures(degree=2, include_bias=False)),
         ("lr", LinearRegression())
-    ]),
+    ])
 }
-
-# === Add Random Forest with Hyperparameter Tuning ===
-rf = RandomForestRegressor(random_state=42)
-
-rf_param_dist = {
-    'n_estimators': [50, 100, 200],
-    'max_depth': [None, 5, 10, 20],
-    'min_samples_split': [2, 5, 10],
-    'min_samples_leaf': [1, 2, 4],
-    'max_features': ['auto', 'sqrt']
-}
-
-rf_search = RandomizedSearchCV(
-    rf,
-    param_distributions=rf_param_dist,
-    n_iter=20,
-    scoring='r2',
-    cv=3,
-    random_state=42,
-    n_jobs=-1,
-    verbose=0
-)
-
-models["Random Forest (Tuned)"] = Pipeline([
-    ("prep", preprocessor),
-    ("rf_search", rf_search)
-])
-
-# === Add XGBoost with Hyperparameter Tuning ===
-xgb_model = xgb.XGBRegressor(objective='reg:squarederror', random_state=42)
-
-xgb_param_dist = {
-    'n_estimators': [50, 100, 200],
-    'max_depth': [3, 5, 7],
-    'learning_rate': [0.01, 0.1, 0.2],
-    'subsample': [0.6, 0.8, 1.0],
-    'colsample_bytree': [0.6, 0.8, 1.0],
-    'reg_alpha': [0, 0.1, 0.5],
-    'reg_lambda': [1, 1.5, 2]
-}
-
-xgb_search = RandomizedSearchCV(
-    xgb_model,
-    param_distributions=xgb_param_dist,
-    n_iter=20,
-    scoring='r2',
-    cv=3,
-    random_state=42,
-    n_jobs=-1,
-    verbose=0
-)
-
-models["XGBoost (Tuned)"] = Pipeline([
-    ("prep", preprocessor),
-    ("xgb_search", xgb_search)
-])
 
 # Train & Predict
 predictions = {}
 metrics = []
 for name, model in models.items():
-    st.write(f"Training model: {name} ...")  # show progress
-
     Xtr = X_train_s if "Simple" in name else X_train_m
     Xte = X_test_s if "Simple" in name else X_test_m
-
     model.fit(Xtr, y_train)
-
-    # For RandomizedSearchCV inside pipeline, get best estimator to predict
-    if "Tuned" in name:
-        y_pred = model.named_steps[list(model.named_steps.keys())[-1]].predict(model.named_steps["prep"].transform(Xte))
-    else:
-        y_pred = model.predict(Xte)
-
+    y_pred = model.predict(Xte)
     predictions[name] = (Xte.copy(), y_pred)
     metrics.append([
         name,
