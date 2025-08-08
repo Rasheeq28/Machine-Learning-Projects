@@ -2508,12 +2508,190 @@
 #                                columns=["Model", "R²", "MAE", "MSE", "RMSE"])
 # st.dataframe(test_metrics_df.set_index("Model"))
 #
+#
+# import streamlit as st
+# import pandas as pd
+# import numpy as np
+# from sklearn.model_selection import train_test_split, cross_val_score
+# from sklearn.linear_model import LinearRegression
+# from sklearn.preprocessing import PolynomialFeatures, StandardScaler, OneHotEncoder
+# from sklearn.pipeline import Pipeline
+# from sklearn.compose import ColumnTransformer
+# from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+# import plotly.graph_objects as go
+# import warnings
+#
+# # Suppress the UserWarning from ColumnTransformer when a list is empty
+# warnings.filterwarnings("ignore", category=UserWarning)
+#
+# st.set_page_config(page_title="Student Score Predictor", layout="wide")
+# st.title("📊 Student Score Predictor")
+#
+# # Load dataset
+# csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
+# df_raw = pd.read_csv(csv_url)
+# df = df_raw.copy()
+#
+# # Fill missing values with mode (most frequent) for each column
+# for col in df.columns:
+#     mode_val = df[col].mode()
+#     if not mode_val.empty:
+#         df[col].fillna(mode_val[0], inplace=True)
+#     else:
+#         df[col].fillna(method='ffill', inplace=True)
+#
+# target = "Exam_Score"
+#
+# # Define features
+# features = [
+#     "Hours_Studied", "Attendance", "Parental_Involvement", "Access_to_Resources",
+#     "Extracurricular_Activities", "Sleep_Hours", "Previous_Scores",
+#     "Motivation_Level", "Internet_Access", "Tutoring_Sessions",
+#     "Family_Income", "Teacher_Quality", "School_Type", "Peer_Influence",
+#     "Physical_Activity", "Learning_Disabilities", "Parental_Education_Level",
+#     "Distance_from_Home", "Gender"
+# ]
+# features = [f for f in features if f in df.columns]
+#
+# X = df[features]
+# y = df[target]
+#
+# # --- REFINED PREPROCESSING PIPELINES ---
+# # Instead of manual encoding, we'll let OneHotEncoder handle categorical features.
+# # This avoids making assumptions about the ordinal nature of data.
+#
+# # Separate numeric and categorical columns for preprocessing
+# numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
+# cat_cols = X.select_dtypes(include=["object"]).columns.tolist()
+#
+# # Define preprocessing pipelines for multi-feature models
+# # The numeric pipeline applies PolynomialFeatures and then StandardScaler
+# # We will use a smaller subset of numeric features for the polynomial model
+# # to avoid overfitting and multicollinearity.
+# poly_features_list = ["Hours_Studied", "Previous_Scores", "Sleep_Hours"]
+#
+# numeric_poly_transformer = Pipeline(steps=[
+#     ('poly', PolynomialFeatures(degree=2, include_bias=False)),
+#     ('scaler', StandardScaler())
+# ])
+#
+# # For all other numeric columns, just scale them
+# numeric_scaler = Pipeline(steps=[
+#     ('scaler', StandardScaler())
+# ])
+#
+# categorical_transformer = Pipeline(steps=[
+#     ('onehot', OneHotEncoder(handle_unknown='ignore'))
+# ])
+#
+# # Combine transformers into ColumnTransformers
+# preprocessor_poly = ColumnTransformer(
+#     transformers=[
+#         ('poly_num', numeric_poly_transformer, poly_features_list),
+#         ('other_num', numeric_scaler, [col for col in numeric_cols if col not in poly_features_list]),
+#         ('cat', categorical_transformer, cat_cols)
+#     ],
+#     remainder='passthrough'
+# )
+#
+# preprocessor_linear = ColumnTransformer(
+#     transformers=[
+#         ('scaler', StandardScaler(), numeric_cols),
+#         ('onehot', OneHotEncoder(handle_unknown='ignore'), cat_cols)
+#     ],
+#     remainder='passthrough'
+# )
+#
+# # Train-test split
+# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+#
+# # Define models with robust pipelines
+# models = {
+#     "Simple Linear Regression": Pipeline(steps=[
+#         ('scaler', StandardScaler()),
+#         ('regressor', LinearRegression())
+#     ]),
+#     "Multi-Feature Linear Regression": Pipeline(steps=[
+#         ('preprocessor', preprocessor_linear),
+#         ('regressor', LinearRegression())
+#     ]),
+#     "Multi-Feature Polynomial (deg=2)": Pipeline(steps=[
+#         ('preprocessor', preprocessor_poly),
+#         ('regressor', LinearRegression())
+#     ])
+# }
+#
+# # Cross-validation results
+# st.subheader("Model Performance with Cross-Validation")
+# cv_results = []
+# for name, model in models.items():
+#     if name == "Simple Linear Regression":
+#         X_cv = X[["Hours_Studied"]]
+#     else:
+#         X_cv = X
+#
+#     r2_scores = cross_val_score(model, X_cv, y, cv=5, scoring='r2')
+#     mae_scores = -cross_val_score(model, X_cv, y, cv=5, scoring='neg_mean_absolute_error')
+#     mse_scores = -cross_val_score(model, X_cv, y, cv=5, scoring='neg_mean_squared_error')
+#     rmse_scores = np.sqrt(mse_scores)
+#
+#     cv_results.append([
+#         name,
+#         np.mean(r2_scores),
+#         np.std(r2_scores),
+#         np.mean(mae_scores),
+#         np.mean(mse_scores),
+#         np.mean(rmse_scores)
+#     ])
+#
+# cv_df = pd.DataFrame(cv_results,
+#                      columns=["Model", "Mean CV R²", "Std Dev CV R²", "Mean CV MAE", "Mean CV MSE", "Mean CV RMSE"])
+# st.dataframe(cv_df.set_index("Model"))
+#
+# # Train final models and plot Actual vs Predicted
+# st.subheader("Actual vs Predicted Scores on Test Set")
+# fig = go.Figure()
+# fig.add_trace(go.Scatter(x=y_test, y=y_test, mode="lines", name="Perfect Fit", line=dict(color="white")))
+#
+# predictions = {}
+# for name, model in models.items():
+#     if name == "Simple Linear Regression":
+#         X_train_specific = X_train[["Hours_Studied"]]
+#         X_test_specific = X_test[["Hours_Studied"]]
+#     else:
+#         X_train_specific = X_train
+#         X_test_specific = X_test
+#
+#     model.fit(X_train_specific, y_train)
+#     y_pred = model.predict(X_test_specific)
+#     predictions[name] = y_pred
+#     fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name=name))
+#
+# fig.update_layout(title="Actual vs Predicted Scores", xaxis_title="Actual", yaxis_title="Predicted")
+# st.plotly_chart(fig, use_container_width=True)
+#
+# # Calculate and show test set performance metrics
+# st.subheader("Test Set Performance Metrics")
+#
+# test_metrics = []
+# for name, y_pred in predictions.items():
+#     r2 = r2_score(y_test, y_pred)
+#     mae = mean_absolute_error(y_test, y_pred)
+#     mse = mean_squared_error(y_test, y_pred)
+#     rmse = np.sqrt(mse)
+#
+#     test_metrics.append([name, r2, mae, mse, rmse])
+#
+# test_metrics_df = pd.DataFrame(test_metrics,
+#                                columns=["Model", "R²", "MAE", "MSE", "RMSE"])
+# st.dataframe(test_metrics_df.set_index("Model"))
+
 
 import streamlit as st
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler, OneHotEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
@@ -2557,25 +2735,17 @@ X = df[features]
 y = df[target]
 
 # --- REFINED PREPROCESSING PIPELINES ---
-# Instead of manual encoding, we'll let OneHotEncoder handle categorical features.
-# This avoids making assumptions about the ordinal nature of data.
-
-# Separate numeric and categorical columns for preprocessing
 numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
 cat_cols = X.select_dtypes(include=["object"]).columns.tolist()
 
 # Define preprocessing pipelines for multi-feature models
-# The numeric pipeline applies PolynomialFeatures and then StandardScaler
-# We will use a smaller subset of numeric features for the polynomial model
-# to avoid overfitting and multicollinearity.
 poly_features_list = ["Hours_Studied", "Previous_Scores", "Sleep_Hours"]
 
 numeric_poly_transformer = Pipeline(steps=[
-    ('poly', PolynomialFeatures(degree=5, include_bias=False)),
+    ('poly', PolynomialFeatures(degree=2, include_bias=False)),
     ('scaler', StandardScaler())
 ])
 
-# For all other numeric columns, just scale them
 numeric_scaler = Pipeline(steps=[
     ('scaler', StandardScaler())
 ])
@@ -2611,13 +2781,13 @@ models = {
         ('scaler', StandardScaler()),
         ('regressor', LinearRegression())
     ]),
-    "Multi-Feature Linear Regression": Pipeline(steps=[
+    "Multi-Feature Linear Regression (Ridge)": Pipeline(steps=[
         ('preprocessor', preprocessor_linear),
-        ('regressor', LinearRegression())
+        ('regressor', Ridge(alpha=1.0))  # Added Ridge regularization with alpha=1.0
     ]),
-    "Multi-Feature Polynomial (deg=2)": Pipeline(steps=[
+    "Multi-Feature Polynomial (deg=2, Ridge)": Pipeline(steps=[
         ('preprocessor', preprocessor_poly),
-        ('regressor', LinearRegression())
+        ('regressor', Ridge(alpha=1.0))  # Added Ridge regularization with alpha=1.0
     ])
 }
 
