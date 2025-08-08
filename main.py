@@ -2571,7 +2571,7 @@ cat_cols = X.select_dtypes(include=["object"]).columns.tolist()
 poly_features_list = ["Hours_Studied", "Previous_Scores", "Sleep_Hours"]
 
 numeric_poly_transformer = Pipeline(steps=[
-    ('poly', PolynomialFeatures(degree=2, include_bias=False)),
+    ('poly', PolynomialFeatures(degree=5, include_bias=False)),
     ('scaler', StandardScaler())
 ])
 
