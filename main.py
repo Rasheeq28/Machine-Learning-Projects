@@ -2509,13 +2509,12 @@
 # st.dataframe(test_metrics_df.set_index("Model"))
 #
 
-
 import streamlit as st
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import PolynomialFeatures, StandardScaler, OneHotEncoder, FunctionTransformer
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler, OneHotEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
@@ -2531,8 +2530,6 @@ st.title("📊 Student Score Predictor")
 # Load dataset
 csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
 df_raw = pd.read_csv(csv_url)
-
-# Make a copy for feature engineering
 df = df_raw.copy()
 
 # Fill missing values with mode (most frequent) for each column
@@ -2546,7 +2543,7 @@ for col in df.columns:
 target = "Exam_Score"
 
 # Define features
-initial_features = [
+features = [
     "Hours_Studied", "Attendance", "Parental_Involvement", "Access_to_Resources",
     "Extracurricular_Activities", "Sleep_Hours", "Previous_Scores",
     "Motivation_Level", "Internet_Access", "Tutoring_Sessions",
@@ -2554,58 +2551,32 @@ initial_features = [
     "Physical_Activity", "Learning_Disabilities", "Parental_Education_Level",
     "Distance_from_Home", "Gender"
 ]
-initial_features = [f for f in initial_features if f in df.columns]
+features = [f for f in features if f in df.columns]
 
-
-# --- IMPROVED FEATURE ENGINEERING ---
-# 1. Custom Ordinal Encoding for categorical features with a clear order
-def ordinal_encode(df_in):
-    df_out = df_in.copy()
-
-    # Map ordinal features to numerical values
-    if 'Attendance' in df_out.columns:
-        df_out['Attendance_Level'] = df_out['Attendance'].map(
-            {'Low': 0, 'Medium': 1, 'High': 2, 'Average': 1}).fillna(df_out['Attendance'].mode()[0]).astype(int)
-
-    if 'Motivation_Level' in df_out.columns:
-        df_out['Motivation_Level_Encoded'] = df_out['Motivation_Level'].map(
-            {'Low': 0, 'Medium': 1, 'High': 2}).fillna(df_out['Motivation_Level'].mode()[0]).astype(int)
-
-    if 'Parental_Involvement' in df_out.columns:
-        df_out['Parental_Involvement_Encoded'] = df_out['Parental_Involvement'].map(
-            {'Low': 0, 'Medium': 1, 'High': 2}).fillna(df_out['Parental_Involvement'].mode()[0]).astype(int)
-
-    return df_out.drop(columns=['Attendance', 'Motivation_Level', 'Parental_Involvement'], errors='ignore')
-
-
-# 2. Targeted Interaction Features
-def create_interaction_features(df_in):
-    df_out = df_in.copy()
-    if 'Hours_Studied' in df_out.columns and 'Previous_Scores' in df_out.columns:
-        df_out['Hours_x_Previous'] = df_out['Hours_Studied'] * df_out['Previous_Scores']
-    if 'Sleep_Hours' in df_out.columns and 'Physical_Activity' in df_out.columns:
-        df_out['Sleep_x_Activity'] = df_out['Sleep_Hours'] * df_out['Physical_Activity']
-    return df_out
-
-
-# 3. Custom Pipeline to apply all feature engineering steps
-feature_engineering_pipeline = Pipeline([
-    ('ordinal_encode', FunctionTransformer(ordinal_encode, validate=False)),
-    ('create_interactions', FunctionTransformer(create_interaction_features, validate=False))
-])
-
-# Apply feature engineering to the dataframe
-X = feature_engineering_pipeline.fit_transform(df[initial_features])
+X = df[features]
 y = df[target]
 
-# Update feature lists based on new engineered features
-engineered_features = X.columns.tolist()
+# --- REFINED PREPROCESSING PIPELINES ---
+# Instead of manual encoding, we'll let OneHotEncoder handle categorical features.
+# This avoids making assumptions about the ordinal nature of data.
+
+# Separate numeric and categorical columns for preprocessing
 numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
 cat_cols = X.select_dtypes(include=["object"]).columns.tolist()
 
 # Define preprocessing pipelines for multi-feature models
+# The numeric pipeline applies PolynomialFeatures and then StandardScaler
+# We will use a smaller subset of numeric features for the polynomial model
+# to avoid overfitting and multicollinearity.
+poly_features_list = ["Hours_Studied", "Previous_Scores", "Sleep_Hours"]
+
 numeric_poly_transformer = Pipeline(steps=[
     ('poly', PolynomialFeatures(degree=2, include_bias=False)),
+    ('scaler', StandardScaler())
+])
+
+# For all other numeric columns, just scale them
+numeric_scaler = Pipeline(steps=[
     ('scaler', StandardScaler())
 ])
 
@@ -2613,23 +2584,25 @@ categorical_transformer = Pipeline(steps=[
     ('onehot', OneHotEncoder(handle_unknown='ignore'))
 ])
 
+# Combine transformers into ColumnTransformers
 preprocessor_poly = ColumnTransformer(
     transformers=[
-        ('num', numeric_poly_transformer, [col for col in numeric_cols if col in X.columns]),
-        ('cat', categorical_transformer, [col for col in cat_cols if col in X.columns])
+        ('poly_num', numeric_poly_transformer, poly_features_list),
+        ('other_num', numeric_scaler, [col for col in numeric_cols if col not in poly_features_list]),
+        ('cat', categorical_transformer, cat_cols)
     ],
     remainder='passthrough'
 )
 
 preprocessor_linear = ColumnTransformer(
     transformers=[
-        ('scaler', StandardScaler(), [col for col in numeric_cols if col in X.columns]),
-        ('onehot', OneHotEncoder(handle_unknown='ignore'), [col for col in cat_cols if col in X.columns])
+        ('scaler', StandardScaler(), numeric_cols),
+        ('onehot', OneHotEncoder(handle_unknown='ignore'), cat_cols)
     ],
     remainder='passthrough'
 )
 
-# Train-test split on the engineered data
+# Train-test split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # Define models with robust pipelines
@@ -2652,7 +2625,6 @@ models = {
 st.subheader("Model Performance with Cross-Validation")
 cv_results = []
 for name, model in models.items():
-    # For the simple model, we need to pass only the "Hours_Studied" column
     if name == "Simple Linear Regression":
         X_cv = X[["Hours_Studied"]]
     else:
