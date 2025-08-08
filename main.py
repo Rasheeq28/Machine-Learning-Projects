@@ -2060,7 +2060,7 @@ for col in df.columns:
 
 target = "Exam_Score"
 
-# Features to use (including Hours_Studied and others you specified)
+# Define features explicitly from your sample
 features = [
     "Hours_Studied",
     "Attendance",
@@ -2079,77 +2079,57 @@ features = [
     "Physical_Activity",
     "Learning_Disabilities",
     "Parental_Education_Level",
-    "Distance_from_Home",
+    "Distance_from_Home",  # categorical like Near, Moderate
     "Gender"
 ]
 
-# Filter features that exist in dataset
+# Filter features actually in dataframe
 features = [f for f in features if f in df.columns]
 
-# ------------------ FEATURE ENGINEERING ------------------
+# ----------- FEATURE ENGINEERING -----------
 
-# Example 1: Interaction terms between Hours_Studied and some numeric features
-interaction_features = ['Motivation_Level', 'Attendance', 'Sleep_Hours', 'Previous_Scores']
-for feat in interaction_features:
-    if feat in df.columns:
-        df[f'Hours_Studied_x_{feat}'] = df['Hours_Studied'] * df[feat]
-
-# Example 2: Interaction between Family_Income and Access_to_Resources
-if 'Family_Income' in df.columns and 'Access_to_Resources' in df.columns:
-    # Convert to numeric, coerce errors to NaN
-    df['Family_Income_num'] = pd.to_numeric(df['Family_Income'], errors='coerce')
-    df['Access_to_Resources_num'] = pd.to_numeric(df['Access_to_Resources'], errors='coerce')
-
-    # Fill NaNs safely with mode or fallback 0
-    fam_income_mode = df['Family_Income_num'].mode()
-    fill_value_fam = fam_income_mode[0] if not fam_income_mode.empty else 0
-    df['Family_Income_num'].fillna(fill_value_fam, inplace=True)
-
-    acc_res_mode = df['Access_to_Resources_num'].mode()
-    fill_value_acc = acc_res_mode[0] if not acc_res_mode.empty else 0
-    df['Access_to_Resources_num'].fillna(fill_value_acc, inplace=True)
-
-    # Create interaction feature
-    df['Income_x_Resources'] = df['Family_Income_num'] * df['Access_to_Resources_num']
-
-    # Drop temporary numeric columns
-    df.drop(columns=['Family_Income_num', 'Access_to_Resources_num'], inplace=True)
-
-# Example 3: Binning Distance_from_Home into categories (close, medium, far)
-if 'Distance_from_Home' in df.columns:
-    bins = [-1, 5, 15, 1000]
-    labels = ['Close', 'Medium', 'Far']
-    df['Distance_Category'] = pd.cut(df['Distance_from_Home'], bins=bins, labels=labels)
-
-# Example 4: Encode Gender as numeric if not numeric
+# 1. Encode Gender to numeric (Male=0, Female=1)
 if 'Gender' in df.columns and df['Gender'].dtype == 'object':
     df['Gender_Encoded'] = df['Gender'].map({'Male': 0, 'Female': 1})
-    # Use Gender_Encoded in place of Gender
     features = [f if f != 'Gender' else 'Gender_Encoded' for f in features]
 
-# Add the newly created features to the feature list
-new_features = [f'Hours_Studied_x_{feat}' for feat in interaction_features if feat in df.columns]
-if 'Income_x_Resources' in df.columns:
-    new_features.append('Income_x_Resources')
-if 'Distance_Category' in df.columns:
-    new_features.append('Distance_Category')
+# 2. Interaction features for numeric columns: multiply Hours_Studied by numeric features
+# Identify numeric features (likely: Hours_Studied, Sleep_Hours, Previous_Scores, Tutoring_Sessions)
+numeric_features = ['Hours_Studied', 'Sleep_Hours', 'Previous_Scores', 'Tutoring_Sessions']
+for feat in numeric_features:
+    if feat in df.columns and feat != 'Hours_Studied':
+        df[f'Hours_Studied_x_{feat}'] = df['Hours_Studied'] * df[feat]
 
-# Combine original and new features
+# 3. Interaction categorical feature between Family_Income and Access_to_Resources
+if 'Family_Income' in df.columns and 'Access_to_Resources' in df.columns:
+    df['FamilyIncome_x_Resources'] = df['Family_Income'].astype(str) + "_" + df['Access_to_Resources'].astype(str)
+
+# 4. Interaction categorical feature between Attendance and Motivation_Level
+if 'Attendance' in df.columns and 'Motivation_Level' in df.columns:
+    df['Attendance_x_Motivation'] = df['Attendance'].astype(str) + "_" + df['Motivation_Level'].astype(str)
+
+# Add these new engineered features to the feature list
+new_features = [f'Hours_Studied_x_{feat}' for feat in numeric_features if feat != 'Hours_Studied']
+if 'FamilyIncome_x_Resources' in df.columns:
+    new_features.append('FamilyIncome_x_Resources')
+if 'Attendance_x_Motivation' in df.columns:
+    new_features.append('Attendance_x_Motivation')
+
 all_features = features + new_features
 
-# ------------------ END FEATURE ENGINEERING ------------------
+# ----------- END FEATURE ENGINEERING -----------
 
 X = df[all_features]
 y = df[target]
 
-# For comparison, single feature dataset remains unchanged
+# Single feature dataset for baseline
 X_single = df[["Hours_Studied"]]
 
-# Split
+# Train-test split
 X_train_s, X_test_s, y_train, y_test = train_test_split(X_single, y, test_size=0.2, random_state=42)
 X_train_m, X_test_m, _, _ = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Preprocessing for multi-feature: separate numeric and categorical
+# Separate numeric and categorical for preprocessing
 numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
 cat_cols = [c for c in all_features if c not in numeric_cols]
 
@@ -2158,7 +2138,7 @@ preprocessor = ColumnTransformer([
     ("cat", OneHotEncoder(drop="first", handle_unknown="ignore"), cat_cols)
 ])
 
-# Define models
+# Models
 models = {
     "Simple Linear": Pipeline([("lr", LinearRegression())]),
     "Multi-Feature Linear": Pipeline([("prep", preprocessor), ("lr", LinearRegression())]),
@@ -2170,7 +2150,7 @@ models = {
     ])
 }
 
-# Train & Predict
+# Train, predict, and collect metrics
 predictions = {}
 metrics = []
 for name, model in models.items():
@@ -2191,11 +2171,12 @@ metrics_df = pd.DataFrame(metrics, columns=["Model", "R²", "MAE", "MSE", "RMSE"
 st.subheader("Model Performance Comparison")
 st.dataframe(metrics_df.set_index("Model"))
 
-# Plot comparison (Actual vs Predictions)
+# Plot Actual vs Predicted
 fig = go.Figure()
 fig.add_trace(go.Scatter(x=y_test, y=y_test, mode="lines", name="Perfect Fit", line=dict(color="black")))
 for name, (Xte, y_pred) in predictions.items():
     fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name=name))
 fig.update_layout(title="Actual vs Predicted Scores", xaxis_title="Actual", yaxis_title="Predicted")
 st.plotly_chart(fig, use_container_width=True)
+
 
