@@ -3075,6 +3075,8 @@ from sklearn.compose import ColumnTransformer
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import plotly.graph_objects as go
 import warnings
+from sklearn.impute import SimpleImputer
+
 
 # # Suppress the UserWarning from ColumnTransformer when a list is empty
 # warnings.filterwarnings("ignore", category=UserWarning)
