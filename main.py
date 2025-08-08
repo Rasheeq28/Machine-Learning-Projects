@@ -1681,141 +1681,159 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import PolynomialFeatures, StandardScaler
-from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler, OneHotEncoder
+from sklearn.pipeline import make_pipeline, Pipeline
+from sklearn.compose import ColumnTransformer
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-import plotly.graph_objects as go
 import plotly.express as px
+import plotly.graph_objects as go
 
-# ============= STREAMLIT CONFIG =============
-st.set_page_config(page_title="ML Student Score Predictor", layout="wide")
-st.title("📊 Student Exam Score Prediction Models")
+# ========================= STREAMLIT PAGE CONFIG =========================
+st.set_page_config(page_title="📊 Student Score Predictor", layout="wide")
+st.title("📊 Student Score Predictor")
 
-# ============= LOAD DATA =============
+# ========================= LOAD DATA =========================
 csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
-df = pd.read_csv(csv_url).dropna()
+df = pd.read_csv(csv_url)
+df_clean = df.dropna()
 
-# ============= FEATURES & TARGET =============
-X_simple = df[['Hours_Studied']]
-y = df['Exam_Score']
-
-feature_cols = [
-    'Hours_Studied', 'Attendance', 'Previous_Scores', 'Sleep_Hours',
-    'Tutoring_Sessions', 'Physical_Activity'
+# ========================= FEATURES =========================
+target = "Exam_Score"
+single_feature = ["Hours_Studied"]
+all_features = [
+    "Hours_Studied", "Attendance", "Parental_Involvement", "Access_to_Resources",
+    "Extracurricular_Activities", "Sleep_Hours", "Previous_Scores", "Motivation_Level",
+    "Internet_Access", "Tutoring_Sessions", "Family_Income", "Teacher_Quality",
+    "School_Type", "Peer_Influence", "Physical_Activity", "Learning_Disabilities",
+    "Parental_Education_Level", "Distance_from_Home", "Gender"
 ]
-X_multi = df[feature_cols]
 
-# ============= TRAIN TEST SPLIT (80:20) =============
-X_train_simple, X_test_simple, y_train, y_test = train_test_split(
-    X_simple, y, test_size=0.2, random_state=42
+# Separate categorical and numeric columns
+numeric_features = df_clean[all_features].select_dtypes(include=["int64", "float64"]).columns.tolist()
+categorical_features = list(set(all_features) - set(numeric_features))
+
+# ========================= DATA SPLIT =========================
+X_single = df_clean[single_feature]
+X_multi = df_clean[all_features]
+y = df_clean[target]
+
+X_train_single, X_test_single, y_train, y_test = train_test_split(
+    X_single, y, test_size=0.2, random_state=42
 )
 X_train_multi, X_test_multi, _, _ = train_test_split(
     X_multi, y, test_size=0.2, random_state=42
 )
 
-# ============= HELPER FUNCTION =============
-def model_metrics(y_true, y_pred):
-    return {
-        "MAE": mean_absolute_error(y_true, y_pred),
-        "MSE": mean_squared_error(y_true, y_pred),
-        "RMSE": np.sqrt(mean_squared_error(y_true, y_pred)),
-        "R²": r2_score(y_true, y_pred)
-    }
-
-# ============= SIMPLE LINEAR =============
-simple_lr = LinearRegression()
-simple_lr.fit(X_train_simple, y_train)
-y_pred_simple = simple_lr.predict(X_test_simple)
-metrics_simple = model_metrics(y_test, y_pred_simple)
-
-# ============= MULTI LINEAR =============
-multi_lr = LinearRegression()
-multi_lr.fit(X_train_multi, y_train)
-y_pred_multi = multi_lr.predict(X_test_multi)
-metrics_multi = model_metrics(y_test, y_pred_multi)
-
-# ============= SIMPLE POLYNOMIAL (BEST DEGREE 2–4) =============
-best_r2_simple, best_degree_simple, best_poly_simple = -np.inf, None, None
-for degree in range(2, 5):
-    poly_model = make_pipeline(StandardScaler(), PolynomialFeatures(degree), LinearRegression())
-    poly_model.fit(X_train_simple, y_train)
-    r2_val = r2_score(y_test, poly_model.predict(X_test_simple))
-    if r2_val > best_r2_simple:
-        best_r2_simple = r2_val
-        best_degree_simple = degree
-        best_poly_simple = poly_model
-
-y_pred_poly_simple = best_poly_simple.predict(X_test_simple)
-metrics_poly_simple = model_metrics(y_test, y_pred_poly_simple)
-
-# ============= MULTI POLYNOMIAL (BEST DEGREE 2–3) =============
-best_r2_multi, best_degree_multi, best_poly_multi = -np.inf, None, None
-for degree in range(2, 4):
-    poly_model = make_pipeline(StandardScaler(), PolynomialFeatures(degree), LinearRegression())
-    poly_model.fit(X_train_multi, y_train)
-    r2_val = r2_score(y_test, poly_model.predict(X_test_multi))
-    if r2_val > best_r2_multi:
-        best_r2_multi = r2_val
-        best_degree_multi = degree
-        best_poly_multi = poly_model
-
-y_pred_poly_multi = best_poly_multi.predict(X_test_multi)
-metrics_poly_multi = model_metrics(y_test, y_pred_poly_multi)
-
-# ============= METRICS TABLE =============
-metrics_df = pd.DataFrame([
-    ["Simple Linear", metrics_simple["MAE"], metrics_simple["RMSE"], metrics_simple["R²"]],
-    ["Multi Linear", metrics_multi["MAE"], metrics_multi["RMSE"], metrics_multi["R²"]],
-    [f"Simple Poly (deg {best_degree_simple})", metrics_poly_simple["MAE"], metrics_poly_simple["RMSE"], metrics_poly_simple["R²"]],
-    [f"Multi Poly (deg {best_degree_multi})", metrics_poly_multi["MAE"], metrics_poly_multi["RMSE"], metrics_poly_multi["R²"]],
-], columns=["Model", "MAE", "RMSE", "R²"])
-
-st.subheader("📈 Model Performance Comparison")
-st.dataframe(metrics_df.style.format({"MAE": "{:.2f}", "RMSE": "{:.2f}", "R²": "{:.3f}"}))
-
-# ============= VISUALISATION =============
-fig = go.Figure()
-
-# Actual points
-fig.add_trace(go.Scatter(
-    x=X_test_simple['Hours_Studied'], y=y_test,
-    mode='markers', name='Actual Data',
-    marker=dict(color='white', size=6, line=dict(width=1, color='black'))
-))
-
-# Predictions
-fig.add_trace(go.Scatter(
-    x=X_test_simple['Hours_Studied'], y=y_pred_simple,
-    mode='markers', name='Simple Linear', marker=dict(color='red', symbol='circle')
-))
-fig.add_trace(go.Scatter(
-    x=X_test_multi['Hours_Studied'], y=y_pred_multi,
-    mode='markers', name='Multi Linear', marker=dict(color='blue', symbol='triangle-up')
-))
-fig.add_trace(go.Scatter(
-    x=X_test_simple['Hours_Studied'], y=y_pred_poly_simple,
-    mode='markers', name=f'Simple Poly (deg {best_degree_simple})', marker=dict(color='purple', symbol='diamond')
-))
-fig.add_trace(go.Scatter(
-    x=X_test_multi['Hours_Studied'], y=y_pred_poly_multi,
-    mode='markers', name=f'Multi Poly (deg {best_degree_multi})', marker=dict(color='orange', symbol='star')
-))
-
-fig.update_layout(
-    title="📊 Predictions by Model vs Hours Studied",
-    xaxis_title="Hours Studied",
-    yaxis_title="Exam Score",
-    legend=dict(orientation="h", y=-0.2),
-    height=600
+# Preprocessing for multi-feature (encode categoricals + scale numerics)
+preprocessor_multi = ColumnTransformer(
+    transformers=[
+        ("num", StandardScaler(), numeric_features),
+        ("cat", OneHotEncoder(drop="first"), categorical_features)
+    ]
 )
-st.plotly_chart(fig, use_container_width=True)
 
-# ============= SINGLE INPUT PREDICTIONS =============
-st.subheader("🎯 Try Predictions")
-hours = st.number_input("Enter Hours Studied:", min_value=0.0, max_value=100.0, value=5.0, step=0.5)
-simple_pred = simple_lr.predict([[hours]])[0]
-poly_simple_pred = best_poly_simple.predict([[hours]])[0]
-st.write(f"**Simple Linear Prediction:** {simple_pred:.2f}")
-st.write(f"**Simple Polynomial (deg {best_degree_simple}) Prediction:** {poly_simple_pred:.2f}")
+# ========================= STREAMLIT TABS =========================
+tab1, tab2, tab3, tab4 = st.tabs([
+    "Simple Linear Model",
+    "Multi-Feature Linear Model",
+    "Simple Polynomial Model",
+    "Multi-Feature Polynomial Model"
+])
+
+# ========== TAB 1: SIMPLE LINEAR ==========
+with tab1:
+    st.subheader("🔵 Simple Linear Regression (Hours Studied only)")
+
+    simple_model = LinearRegression()
+    simple_model.fit(X_train_single, y_train)
+    y_pred_single = simple_model.predict(X_test_single)
+
+    # Plot regression line
+    x_line = np.linspace(X_single.min(), X_single.max(), 100).reshape(-1, 1)
+    y_line = simple_model.predict(x_line)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df_clean["Hours_Studied"], y=df_clean["Exam_Score"],
+        mode="markers", name="Actual", marker=dict(color="blue")
+    ))
+    fig.add_trace(go.Scatter(
+        x=x_line.flatten(), y=y_line,
+        mode="lines", name="Regression Line", line=dict(color="red")
+    ))
+    fig.update_layout(title="Hours Studied vs Exam Score", xaxis_title="Hours Studied", yaxis_title="Exam Score")
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Metrics
+    st.write(f"**MAE:** {mean_absolute_error(y_test, y_pred_single):.2f}")
+    st.write(f"**R²:** {r2_score(y_test, y_pred_single):.2f}")
+    st.write(f"**Equation:** `Exam_Score = {simple_model.intercept_:.2f} + {simple_model.coef_[0]:.2f} * Hours_Studied`")
+
+# ========== TAB 2: MULTI-FEATURE LINEAR ==========
+with tab2:
+    st.subheader("🟢 Multi-Feature Linear Regression")
+
+    multi_model = Pipeline([
+        ("preprocessor", preprocessor_multi),
+        ("regressor", LinearRegression())
+    ])
+    multi_model.fit(X_train_multi, y_train)
+    y_pred_multi = multi_model.predict(X_test_multi)
+
+    fig = px.scatter(x=y_test, y=y_pred_multi, labels={"x": "Actual", "y": "Predicted"},
+                     title="Actual vs Predicted (Multi-Feature Linear)")
+    fig.add_trace(go.Scatter(x=[y_test.min(), y_test.max()], y=[y_test.min(), y_test.max()],
+                             mode="lines", name="Perfect Fit", line=dict(color="red")))
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.write(f"**MAE:** {mean_absolute_error(y_test, y_pred_multi):.2f}")
+    st.write(f"**R²:** {r2_score(y_test, y_pred_multi):.2f}")
+
+# ========== TAB 3: SIMPLE POLYNOMIAL ==========
+with tab3:
+    st.subheader("🟣 Simple Polynomial Regression (Hours Studied only, Degree 2)")
+
+    poly_simple_model = make_pipeline(PolynomialFeatures(degree=2), LinearRegression())
+    poly_simple_model.fit(X_train_single, y_train)
+    y_pred_poly_single = poly_simple_model.predict(X_test_single)
+
+    x_line_poly = np.linspace(X_single.min(), X_single.max(), 100).reshape(-1, 1)
+    y_line_poly = poly_simple_model.predict(x_line_poly)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df_clean["Hours_Studied"], y=df_clean["Exam_Score"],
+        mode="markers", name="Actual", marker=dict(color="blue")
+    ))
+    fig.add_trace(go.Scatter(
+        x=x_line_poly.flatten(), y=y_line_poly,
+        mode="lines", name="Polynomial Curve", line=dict(color="green")
+    ))
+    fig.update_layout(title="Hours Studied vs Exam Score (Polynomial)", xaxis_title="Hours Studied", yaxis_title="Exam Score")
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.write(f"**MAE:** {mean_absolute_error(y_test, y_pred_poly_single):.2f}")
+    st.write(f"**R²:** {r2_score(y_test, y_pred_poly_single):.2f}")
+
+# ========== TAB 4: MULTI-FEATURE POLYNOMIAL ==========
+with tab4:
+    st.subheader("🟠 Multi-Feature Polynomial Regression (Degree 2)")
+
+    poly_multi_model = Pipeline([
+        ("preprocessor", preprocessor_multi),
+        ("poly", PolynomialFeatures(degree=2, include_bias=False)),
+        ("regressor", LinearRegression())
+    ])
+    poly_multi_model.fit(X_train_multi, y_train)
+    y_pred_poly_multi = poly_multi_model.predict(X_test_multi)
+
+    fig = px.scatter(x=y_test, y=y_pred_poly_multi, labels={"x": "Actual", "y": "Predicted"},
+                     title="Actual vs Predicted (Multi-Feature Polynomial)")
+    fig.add_trace(go.Scatter(x=[y_test.min(), y_test.max()], y=[y_test.min(), y_test.max()],
+                             mode="lines", name="Perfect Fit", line=dict(color="red")))
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.write(f"**MAE:** {mean_absolute_error(y_test, y_pred_poly_multi):.2f}")
+    st.write(f"**R²:** {r2_score(y_test, y_pred_poly_multi):.2f}")
