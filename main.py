@@ -2687,10 +2687,182 @@
 # st.dataframe(test_metrics_df.set_index("Model"))
 
 
+
+# RIDGE
+# import streamlit as st
+# import pandas as pd
+# import numpy as np
+# from sklearn.model_selection import train_test_split, cross_val_score
+# from sklearn.linear_model import LinearRegression, Ridge
+# from sklearn.preprocessing import PolynomialFeatures, StandardScaler, OneHotEncoder
+# from sklearn.pipeline import Pipeline
+# from sklearn.compose import ColumnTransformer
+# from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+# import plotly.graph_objects as go
+# import warnings
+#
+# # Suppress the UserWarning from ColumnTransformer when a list is empty
+# warnings.filterwarnings("ignore", category=UserWarning)
+#
+# st.set_page_config(page_title="Student Score Predictor", layout="wide")
+# st.title("📊 Student Score Predictor")
+#
+# # Load dataset
+# csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
+# df_raw = pd.read_csv(csv_url)
+# df = df_raw.copy()
+#
+# # Fill missing values with mode (most frequent) for each column
+# for col in df.columns:
+#     mode_val = df[col].mode()
+#     if not mode_val.empty:
+#         df[col].fillna(mode_val[0], inplace=True)
+#     else:
+#         df[col].fillna(method='ffill', inplace=True)
+#
+# target = "Exam_Score"
+#
+# # Define features
+# features = [
+#     "Hours_Studied", "Attendance", "Parental_Involvement", "Access_to_Resources",
+#     "Extracurricular_Activities", "Sleep_Hours", "Previous_Scores",
+#     "Motivation_Level", "Internet_Access", "Tutoring_Sessions",
+#     "Family_Income", "Teacher_Quality", "School_Type", "Peer_Influence",
+#     "Physical_Activity", "Learning_Disabilities", "Parental_Education_Level",
+#     "Distance_from_Home", "Gender"
+# ]
+# features = [f for f in features if f in df.columns]
+#
+# X = df[features]
+# y = df[target]
+#
+# # --- REFINED PREPROCESSING PIPELINES ---
+# numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
+# cat_cols = X.select_dtypes(include=["object"]).columns.tolist()
+#
+# # Define preprocessing pipelines for multi-feature models
+# poly_features_list = ["Hours_Studied", "Previous_Scores", "Sleep_Hours"]
+#
+# numeric_poly_transformer = Pipeline(steps=[
+#     ('poly', PolynomialFeatures(degree=2, include_bias=False)),
+#     ('scaler', StandardScaler())
+# ])
+#
+# numeric_scaler = Pipeline(steps=[
+#     ('scaler', StandardScaler())
+# ])
+#
+# categorical_transformer = Pipeline(steps=[
+#     ('onehot', OneHotEncoder(handle_unknown='ignore'))
+# ])
+#
+# # Combine transformers into ColumnTransformers
+# preprocessor_poly = ColumnTransformer(
+#     transformers=[
+#         ('poly_num', numeric_poly_transformer, poly_features_list),
+#         ('other_num', numeric_scaler, [col for col in numeric_cols if col not in poly_features_list]),
+#         ('cat', categorical_transformer, cat_cols)
+#     ],
+#     remainder='passthrough'
+# )
+#
+# preprocessor_linear = ColumnTransformer(
+#     transformers=[
+#         ('scaler', StandardScaler(), numeric_cols),
+#         ('onehot', OneHotEncoder(handle_unknown='ignore'), cat_cols)
+#     ],
+#     remainder='passthrough'
+# )
+#
+# # Train-test split
+# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+#
+# # Define models with robust pipelines
+# models = {
+#     "Simple Linear Regression": Pipeline(steps=[
+#         ('scaler', StandardScaler()),
+#         ('regressor', LinearRegression())
+#     ]),
+#     "Multi-Feature Linear Regression (Ridge)": Pipeline(steps=[
+#         ('preprocessor', preprocessor_linear),
+#         ('regressor', Ridge(alpha=1.0))  # Added Ridge regularization with alpha=1.0
+#     ]),
+#     "Multi-Feature Polynomial (deg=2, Ridge)": Pipeline(steps=[
+#         ('preprocessor', preprocessor_poly),
+#         ('regressor', Ridge(alpha=1.0))  # Added Ridge regularization with alpha=1.0
+#     ])
+# }
+#
+# # Cross-validation results
+# st.subheader("Model Performance with Cross-Validation")
+# cv_results = []
+# for name, model in models.items():
+#     if name == "Simple Linear Regression":
+#         X_cv = X[["Hours_Studied"]]
+#     else:
+#         X_cv = X
+#
+#     r2_scores = cross_val_score(model, X_cv, y, cv=5, scoring='r2')
+#     mae_scores = -cross_val_score(model, X_cv, y, cv=5, scoring='neg_mean_absolute_error')
+#     mse_scores = -cross_val_score(model, X_cv, y, cv=5, scoring='neg_mean_squared_error')
+#     rmse_scores = np.sqrt(mse_scores)
+#
+#     cv_results.append([
+#         name,
+#         np.mean(r2_scores),
+#         np.std(r2_scores),
+#         np.mean(mae_scores),
+#         np.mean(mse_scores),
+#         np.mean(rmse_scores)
+#     ])
+#
+# cv_df = pd.DataFrame(cv_results,
+#                      columns=["Model", "Mean CV R²", "Std Dev CV R²", "Mean CV MAE", "Mean CV MSE", "Mean CV RMSE"])
+# st.dataframe(cv_df.set_index("Model"))
+#
+# # Train final models and plot Actual vs Predicted
+# st.subheader("Actual vs Predicted Scores on Test Set")
+# fig = go.Figure()
+# fig.add_trace(go.Scatter(x=y_test, y=y_test, mode="lines", name="Perfect Fit", line=dict(color="white")))
+#
+# predictions = {}
+# for name, model in models.items():
+#     if name == "Simple Linear Regression":
+#         X_train_specific = X_train[["Hours_Studied"]]
+#         X_test_specific = X_test[["Hours_Studied"]]
+#     else:
+#         X_train_specific = X_train
+#         X_test_specific = X_test
+#
+#     model.fit(X_train_specific, y_train)
+#     y_pred = model.predict(X_test_specific)
+#     predictions[name] = y_pred
+#     fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name=name))
+#
+# fig.update_layout(title="Actual vs Predicted Scores", xaxis_title="Actual", yaxis_title="Predicted")
+# st.plotly_chart(fig, use_container_width=True)
+#
+# # Calculate and show test set performance metrics
+# st.subheader("Test Set Performance Metrics")
+#
+# test_metrics = []
+# for name, y_pred in predictions.items():
+#     r2 = r2_score(y_test, y_pred)
+#     mae = mean_absolute_error(y_test, y_pred)
+#     mse = mean_squared_error(y_test, y_pred)
+#     rmse = np.sqrt(mse)
+#
+#     test_metrics.append([name, r2, mae, mse, rmse])
+#
+# test_metrics_df = pd.DataFrame(test_metrics,
+#                                columns=["Model", "R²", "MAE", "MSE", "RMSE"])
+# st.dataframe(test_metrics_df.set_index("Model"))
+
+
 import streamlit as st
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler, OneHotEncoder
 from sklearn.pipeline import Pipeline
@@ -2738,7 +2910,6 @@ y = df[target]
 numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
 cat_cols = X.select_dtypes(include=["object"]).columns.tolist()
 
-# Define preprocessing pipelines for multi-feature models
 poly_features_list = ["Hours_Studied", "Previous_Scores", "Sleep_Hours"]
 
 numeric_poly_transformer = Pipeline(steps=[
@@ -2754,7 +2925,6 @@ categorical_transformer = Pipeline(steps=[
     ('onehot', OneHotEncoder(handle_unknown='ignore'))
 ])
 
-# Combine transformers into ColumnTransformers
 preprocessor_poly = ColumnTransformer(
     transformers=[
         ('poly_num', numeric_poly_transformer, poly_features_list),
@@ -2775,20 +2945,51 @@ preprocessor_linear = ColumnTransformer(
 # Train-test split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Define models with robust pipelines
+# --- HYPERPARAMETER TUNING ---
+# We will use GridSearchCV to find the best alpha for Ridge models.
+st.subheader("Hyperparameter Tuning with GridSearchCV")
+
+# Define a range of alpha values to search
+param_grid = {'regressor__alpha': np.logspace(-4, 4, 10)}
+
+# Define pipelines for the models we want to tune
+multi_linear_pipeline = Pipeline(steps=[
+    ('preprocessor', preprocessor_linear),
+    ('regressor', Ridge())
+])
+
+poly_pipeline = Pipeline(steps=[
+    ('preprocessor', preprocessor_poly),
+    ('regressor', Ridge())
+])
+
+# Perform GridSearchCV for each model
+tuned_multi_linear = GridSearchCV(multi_linear_pipeline, param_grid, cv=5, scoring='r2', verbose=1)
+tuned_poly = GridSearchCV(poly_pipeline, param_grid, cv=5, scoring='r2', verbose=1)
+
+# Fit the GridSearchCV models
+tuned_multi_linear.fit(X, y)
+tuned_poly.fit(X, y)
+
+# Get the best parameters and best scores
+best_linear_params = tuned_multi_linear.best_params_
+best_linear_score = tuned_multi_linear.best_score_
+best_poly_params = tuned_poly.best_params_
+best_poly_score = tuned_poly.best_score_
+
+st.write(
+    f"Best Alpha for Multi-Feature Linear Regression (Ridge): **{best_linear_params['regressor__alpha']:.4f}** (R²: {best_linear_score:.4f})")
+st.write(
+    f"Best Alpha for Multi-Feature Polynomial (deg=2, Ridge): **{best_poly_params['regressor__alpha']:.4f}** (R²: {best_poly_score:.4f})")
+
+# Define models with the best hyperparameters
 models = {
     "Simple Linear Regression": Pipeline(steps=[
         ('scaler', StandardScaler()),
         ('regressor', LinearRegression())
     ]),
-    "Multi-Feature Linear Regression (Ridge)": Pipeline(steps=[
-        ('preprocessor', preprocessor_linear),
-        ('regressor', Ridge(alpha=1.0))  # Added Ridge regularization with alpha=1.0
-    ]),
-    "Multi-Feature Polynomial (deg=2, Ridge)": Pipeline(steps=[
-        ('preprocessor', preprocessor_poly),
-        ('regressor', Ridge(alpha=1.0))  # Added Ridge regularization with alpha=1.0
-    ])
+    "Multi-Feature Linear Regression (Tuned Ridge)": tuned_multi_linear.best_estimator_,
+    "Multi-Feature Polynomial (Tuned Ridge)": tuned_poly.best_estimator_
 }
 
 # Cross-validation results
@@ -2796,14 +2997,19 @@ st.subheader("Model Performance with Cross-Validation")
 cv_results = []
 for name, model in models.items():
     if name == "Simple Linear Regression":
-        X_cv = X[["Hours_Studied"]]
-    else:
-        X_cv = X
+        # Note: GridSearchCV already performed cross-validation, so we'll just use its best score.
+        r2_scores = cross_val_score(model, X[["Hours_Studied"]], y, cv=5, scoring='r2')
+        mae_scores = -cross_val_score(model, X[["Hours_Studied"]], y, cv=5, scoring='neg_mean_absolute_error')
+        mse_scores = -cross_val_score(model, X[["Hours_Studied"]], y, cv=5, scoring='neg_mean_squared_error')
+        rmse_scores = np.sqrt(mse_scores)
 
-    r2_scores = cross_val_score(model, X_cv, y, cv=5, scoring='r2')
-    mae_scores = -cross_val_score(model, X_cv, y, cv=5, scoring='neg_mean_absolute_error')
-    mse_scores = -cross_val_score(model, X_cv, y, cv=5, scoring='neg_mean_squared_error')
-    rmse_scores = np.sqrt(mse_scores)
+    else:
+        # For the tuned models, their best_estimator_ is already a fitted pipeline,
+        # but we can re-run cross_val_score for a consistent table format.
+        r2_scores = cross_val_score(model, X, y, cv=5, scoring='r2')
+        mae_scores = -cross_val_score(model, X, y, cv=5, scoring='neg_mean_absolute_error')
+        mse_scores = -cross_val_score(model, X, y, cv=5, scoring='neg_mean_squared_error')
+        rmse_scores = np.sqrt(mse_scores)
 
     cv_results.append([
         name,
