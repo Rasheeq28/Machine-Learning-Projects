@@ -5892,9 +5892,8 @@ with tab1:
         verbose=1
     )
 
-    # Grid search parameters for Ridge alpha (inside pipeline named 'regressor')
     param_grid = {
-        'regressor__alpha': np.logspace(-4, 4, 10)
+        'estimator__regressor__alpha': np.logspace(-4, 4, 10)
     }
 
     # GridSearchCV wrapping RFECV
