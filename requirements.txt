@@ -7,3 +7,4 @@ plotly
 kagglehub
 xgboost
 seaborn
+standard-scaler
