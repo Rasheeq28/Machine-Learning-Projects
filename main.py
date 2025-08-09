@@ -5295,6 +5295,25 @@ tab1, tab2, tab3, tab4 = st.tabs([
 
 # ================================= TAB 1 =================================
 
+# with tab1:
+#     st.subheader("📊 Student Score Predictor")
+#     warnings.filterwarnings("ignore", category=UserWarning)
+#
+#     # Load dataset
+#     csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
+#     df_raw = pd.read_csv(csv_url)
+#     df = df_raw.copy()
+#
+#     # --- Advanced Missing Value Imputation ---
+#     numeric_cols = df.select_dtypes(include=["int64", "float64"]).columns
+#     cat_cols = df.select_dtypes(include=["object"]).columns
+#
+#     num_imputer = SimpleImputer(strategy='median')
+#     cat_imputer = SimpleImputer(strategy='most_frequent')
+#
+#     df[numeric_cols] = num_imputer.fit_transform(df[numeric_cols])
+#     df[cat_cols] = cat_imputer.fit_transform(df[cat_cols])
+
 with tab1:
     st.subheader("📊 Student Score Predictor")
     warnings.filterwarnings("ignore", category=UserWarning)
@@ -5303,6 +5322,73 @@ with tab1:
     csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
     df_raw = pd.read_csv(csv_url)
     df = df_raw.copy()
+
+    # --- Exploratory Data Analysis (EDA) ---
+    st.subheader("🔍 Dataset Overview")
+    st.write("**First 5 Rows of Raw Data:**")
+    st.dataframe(df.head())
+
+    st.write("**Dataset Shape:**", df.shape)
+    st.write("**Column Types:**")
+    st.write(df.dtypes)
+
+    # Summary statistics
+    st.subheader("📈 Summary Statistics")
+    st.write(df.describe().T)  # Numeric summary
+    st.write("**Median Values:**")
+    st.write(df.median(numeric_only=True))
+    st.write("**Mode Values:**")
+    st.write(df.mode().iloc[0])
+
+    # Missing values
+    st.subheader("🚨 Missing Values")
+    st.write(df.isnull().sum())
+
+    # Correlation heatmap for numeric features
+    st.subheader("📊 Correlation Heatmap (Numeric Features)")
+    numeric_cols_corr = df.select_dtypes(include=["int64", "float64"])
+    corr = numeric_cols_corr.corr()
+
+    fig_corr = go.Figure(data=go.Heatmap(
+        z=corr.values,
+        x=corr.columns,
+        y=corr.columns,
+        colorscale="RdBu",
+        zmin=-1, zmax=1
+    ))
+    fig_corr.update_layout(title="Correlation Heatmap", xaxis_nticks=36)
+    st.plotly_chart(fig_corr, use_container_width=True)
+
+    # Distribution of numeric features
+    st.subheader("📊 Numeric Feature Distributions")
+    for col in numeric_cols_corr.columns:
+        fig_hist = go.Figure()
+        fig_hist.add_trace(go.Histogram(x=df[col], nbinsx=20, marker_color="lightblue"))
+        fig_hist.update_layout(title=f"Histogram of {col}", xaxis_title=col, yaxis_title="Count")
+        st.plotly_chart(fig_hist, use_container_width=True)
+
+    # Bar plots for categorical features
+    st.subheader("📊 Categorical Feature Distributions")
+    cat_cols_eda = df.select_dtypes(include=["object"]).columns
+    for col in cat_cols_eda:
+        fig_bar = go.Figure()
+        fig_bar.add_trace(go.Bar(
+            x=df[col].value_counts().index,
+            y=df[col].value_counts().values,
+            marker_color="orange"
+        ))
+        fig_bar.update_layout(title=f"Bar Chart of {col}", xaxis_title=col, yaxis_title="Count")
+        st.plotly_chart(fig_bar, use_container_width=True)
+
+    # Outlier detection - Boxplots for numeric features
+    st.subheader("📦 Outlier Visualization (Boxplots)")
+    for col in numeric_cols_corr.columns:
+        fig_box = go.Figure()
+        fig_box.add_trace(go.Box(y=df[col], name=col, marker_color="lightgreen"))
+        fig_box.update_layout(title=f"Boxplot of {col}")
+        st.plotly_chart(fig_box, use_container_width=True)
+
+    st.markdown("---")
 
     # --- Advanced Missing Value Imputation ---
     numeric_cols = df.select_dtypes(include=["int64", "float64"]).columns
@@ -5314,6 +5400,8 @@ with tab1:
     df[numeric_cols] = num_imputer.fit_transform(df[numeric_cols])
     df[cat_cols] = cat_imputer.fit_transform(df[cat_cols])
 
+    # (Your existing feature engineering and modeling code continues below...)
+
     target = "Exam_Score"
 
     features = [
@@ -5321,10 +5409,10 @@ with tab1:
         "Extracurricular_Activities", "Sleep_Hours", "Previous_Scores",
         "Motivation_Level", "Internet_Access", "Tutoring_Sessions",
         "Family_Income", "Teacher_Quality", "School_Type",
-        # "Peer_Influence",
-        # "Physical_Activity",
+        "Peer_Influence",
+        "Physical_Activity",
         "Learning_Disabilities", "Parental_Education_Level",
-        # "Distance_from_Home"
+        "Distance_from_Home"
          "Gender"
     ]
     features = [f for f in features if f in df.columns]
