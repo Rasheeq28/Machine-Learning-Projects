@@ -5501,15 +5501,8 @@ with tab1:
     df_raw = pd.read_csv(csv_url)
     df = df_raw.copy()
 
-    # --- Advanced Missing Value Imputation ---
-    numeric_cols = df.select_dtypes(include=["int64", "float64"]).columns
-    cat_cols = df.select_dtypes(include=["object"]).columns
-
-    num_imputer = SimpleImputer(strategy='median')
-    cat_imputer = SimpleImputer(strategy='most_frequent')
-
-    df[numeric_cols] = num_imputer.fit_transform(df[numeric_cols])
-    df[cat_cols] = cat_imputer.fit_transform(df[cat_cols])
+    # --- Drop rows with missing values ---
+    df = df.dropna()
 
     target = "Exam_Score"
 
