@@ -5811,10 +5811,14 @@ tab1, tab2, tab3, tab4 = st.tabs([
 #     st.plotly_chart(fig2, use_container_width=True)
 
 with tab1:
-    st.subheader("📊 Student Score Predictor with Feature Engineering, RFECV & Hyperparameter Tuning")
+    import warnings
     warnings.filterwarnings("ignore", category=UserWarning)
 
+    import streamlit as st
     import matplotlib.pyplot as plt
+    import plotly.express as px
+    import numpy as np
+    import pandas as pd
     from sklearn.impute import SimpleImputer
     from sklearn.linear_model import Ridge
     from sklearn.model_selection import train_test_split, GridSearchCV, RepeatedKFold
@@ -5823,9 +5827,8 @@ with tab1:
     from sklearn.preprocessing import StandardScaler, OneHotEncoder, PolynomialFeatures
     from sklearn.feature_selection import RFECV
     from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
-    import plotly.express as px
-    import numpy as np
-    import pandas as pd
+
+    st.subheader("📊 Student Score Predictor with Feature Engineering, RFECV & Hyperparameter Tuning")
 
     # Load dataset and drop missing rows
     csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
@@ -5882,18 +5885,45 @@ with tab1:
         remainder='drop'
     )
 
-    # Define base Ridge regressor
-    base_ridge = Ridge()
+    # Train-test split
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Full pipeline: preprocessing + regressor
+    # Step 1: GridSearchCV to tune Ridge alpha in pipeline
+    base_ridge = Ridge()
     pipeline = Pipeline([
         ('preprocessor', preprocessor),
         ('regressor', base_ridge)
     ])
 
-    # RFECV wrapped around pipeline
+    param_grid = {
+        'regressor__alpha': np.logspace(-4, 4, 10)
+    }
+
+    st.write("Running GridSearchCV to find the best Ridge alpha (this might take a while)...")
+    grid_search = GridSearchCV(
+        pipeline,
+        param_grid=param_grid,
+        cv=RepeatedKFold(n_splits=5, n_repeats=2, random_state=42),
+        scoring='r2',
+        n_jobs=-1,
+        verbose=2
+    )
+    grid_search.fit(X_train, y_train)
+
+    best_alpha = grid_search.best_params_['regressor__alpha']
+    st.write(f"Best alpha found: {best_alpha:.6f}")
+    st.write(f"Best cross-validation R² score: {grid_search.best_score_:.4f}")
+
+    # Step 2: RFECV for feature selection using the best alpha Ridge model
+    best_ridge = Ridge(alpha=best_alpha)
+
+    pipeline_best = Pipeline([
+        ('preprocessor', preprocessor),
+        ('regressor', best_ridge)
+    ])
+
     rfecv = RFECV(
-        estimator=pipeline,
+        estimator=pipeline_best,
         step=1,
         cv=RepeatedKFold(n_splits=5, n_repeats=2, random_state=42),
         scoring='r2',
@@ -5902,46 +5932,21 @@ with tab1:
         verbose=1
     )
 
-    # Param grid for GridSearchCV: tuning Ridge alpha inside the pipeline inside RFECV
-    param_grid = {
-        'estimator__regressor__alpha': np.logspace(-4, 4, 10)
-    }
+    st.write("Running RFECV for feature selection (this might take a while)...")
+    rfecv.fit(X_train, y_train)
 
-    grid_search = GridSearchCV(
-        rfecv,
-        param_grid=param_grid,
-        cv=RepeatedKFold(n_splits=5, n_repeats=2, random_state=42),
-        scoring='r2',
-        n_jobs=-1,
-        verbose=2
-    )
-
-    # Train-test split
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    st.write("Running GridSearchCV with RFECV for feature selection (this might take a while)...")
-    grid_search.fit(X_train, y_train)
-
-    best_alpha = grid_search.best_params_['estimator__regressor__alpha']
-    st.write(f"Best alpha found: {best_alpha:.6f}")
-    st.write(f"Best cross-validation R² score: {grid_search.best_score_:.4f}")
-
-    best_rfecv_pipeline = grid_search.best_estimator_
-
-    n_features_opt = best_rfecv_pipeline.n_features_
-    st.write(f"Optimal number of features selected by RFECV: {n_features_opt}")
+    st.write(f"Optimal number of features selected by RFECV: {rfecv.n_features_}")
 
     # Plot RFECV scores (number of features vs CV score)
     fig, ax = plt.subplots()
-    ax.plot(range(1, len(best_rfecv_pipeline.cv_results_['mean_test_score']) + 1),
-            best_rfecv_pipeline.cv_results_['mean_test_score'])
+    ax.plot(range(1, len(rfecv.grid_scores_) + 1), rfecv.grid_scores_)
     ax.set_xlabel("Number of features selected")
     ax.set_ylabel("Cross-validation R² score")
     ax.set_title("RFECV - Number of Features vs CV Score")
     st.pyplot(fig)
 
     # Evaluate on test set
-    y_pred = best_rfecv_pipeline.predict(X_test)
+    y_pred = rfecv.predict(X_test)
 
     r2 = r2_score(y_test, y_pred)
     mae = mean_absolute_error(y_test, y_pred)
