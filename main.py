@@ -4,7 +4,7 @@
 # path = kagglehub.dataset_download("lainguyn123/student-performance-factors")
 #
 # print("Path to dataset files:", path)
-import StandardScaler
+
 # import pandas as pd
 #
 # # Load your dataset
@@ -5277,7 +5277,9 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import plotly.graph_objects as go
-from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import train_test_split
+from sklearn.inspection import permutation_importance
 
 
 
@@ -5514,6 +5516,7 @@ with tab1:
 
     # --- Outlier Removal ---
     from sklearn.ensemble import IsolationForest
+
     iso = IsolationForest(contamination=0.05, random_state=42)
     outliers = iso.fit_predict(df[numeric_cols])
     df = df[outliers == 1].reset_index(drop=True)
@@ -5534,9 +5537,6 @@ with tab1:
     y = df[target]
 
     # --- Feature Selection via Permutation Importance ---
-    from sklearn.linear_model import Ridge
-    from sklearn.model_selection import train_test_split
-    from sklearn.inspection import permutation_importance
 
     X_train_fs, X_test_fs, y_train_fs, y_test_fs = train_test_split(X, y, test_size=0.2, random_state=42)
     model_fs = Ridge(alpha=1.0)
@@ -5621,8 +5621,10 @@ with tab1:
     best_poly_params = tuned_poly.best_params_
     best_poly_score = tuned_poly.best_score_
 
-    st.write(f"Best Alpha for Multi-Feature Linear Regression (Ridge): **{best_linear_params['regressor__alpha']:.4f}** (R²: {best_linear_score:.4f})")
-    st.write(f"Best Alpha for Multi-Feature Polynomial (deg=2, Ridge): **{best_poly_params['regressor__alpha']:.4f}** (R²: {best_poly_score:.4f})")
+    st.write(
+        f"Best Alpha for Multi-Feature Linear Regression (Ridge): **{best_linear_params['regressor__alpha']:.4f}** (R²: {best_linear_score:.4f})")
+    st.write(
+        f"Best Alpha for Multi-Feature Polynomial (deg=2, Ridge): **{best_poly_params['regressor__alpha']:.4f}** (R²: {best_poly_score:.4f})")
 
     # Define models
     models = {
@@ -5642,8 +5644,10 @@ with tab1:
     for name, model in models.items():
         if name == "Simple Linear Regression":
             r2_scores = cross_val_score(model, X[["Hours_Studied"]], y, cv=cv_strategy, scoring='r2')
-            mae_scores = -cross_val_score(model, X[["Hours_Studied"]], y, cv=cv_strategy, scoring='neg_mean_absolute_error')
-            mse_scores = -cross_val_score(model, X[["Hours_Studied"]], y, cv=cv_strategy, scoring='neg_mean_squared_error')
+            mae_scores = -cross_val_score(model, X[["Hours_Studied"]], y, cv=cv_strategy,
+                                          scoring='neg_mean_absolute_error')
+            mse_scores = -cross_val_score(model, X[["Hours_Studied"]], y, cv=cv_strategy,
+                                          scoring='neg_mean_squared_error')
             rmse_scores = np.sqrt(mse_scores)
         else:
             r2_scores = cross_val_score(model, X, y, cv=cv_strategy, scoring='r2')
