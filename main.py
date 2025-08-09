@@ -5277,7 +5277,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import plotly.graph_objects as go
-import StandardScaler
+from sklearn.preprocessing import StandardScaler
+
 
 
 
