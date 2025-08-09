@@ -5502,7 +5502,9 @@ with tab1:
     df = df_raw.copy()
 
     # --- Drop rows with missing values ---
+
     df = df.dropna()
+    print(df.isnull().sum())  # should be all zeros
 
     target = "Exam_Score"
 
