@@ -5502,9 +5502,9 @@ with tab1:
     df = df_raw.copy()
 
     # --- Drop rows with missing values ---
-
     df = df.dropna()
-    print(df.isnull().sum())  # should be all zeros
+    # For debugging (optional in Streamlit, use st.write instead of print)
+    # st.write("Missing values per column after dropna:", df.isnull().sum())
 
     target = "Exam_Score"
 
@@ -5527,18 +5527,12 @@ with tab1:
     numeric_cols = X.select_dtypes(include=['int64', 'float64']).columns.tolist()
     cat_cols = X.select_dtypes(include=['object']).columns.tolist()
 
-    preprocessor_linear = ColumnTransformer(
-        transformers=[
-            ('num', StandardScaler(), numeric_cols),
-            ('cat', OneHotEncoder(handle_unknown='ignore'), cat_cols)
-        ]
-    )
-
     if not numeric_cols:
         st.error("No numeric columns found for scaling!")
     if not cat_cols:
         st.warning("No categorical columns found for encoding!")
 
+    # Polynomial feature subset
     poly_features_list = ["Hours_Studied", "Previous_Scores", "Sleep_Hours"]
 
     numeric_poly_transformer = Pipeline(steps=[
@@ -5551,8 +5545,8 @@ with tab1:
     ])
 
     categorical_transformer = Pipeline(steps=[
-        ('onehot', OneHotEncoder(handle_unknown='ignore')),
-        ('minmax', MinMaxScaler())
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))
+        # Removed MinMaxScaler because one-hot encoded data is already scaled (0 or 1)
     ])
 
     preprocessor_poly = ColumnTransformer(
@@ -5695,6 +5689,7 @@ with tab1:
     test_metrics_df = pd.DataFrame(test_metrics,
                                    columns=["Model", "R²", "MAE", "MSE", "RMSE"])
     st.dataframe(test_metrics_df.set_index("Model"))
+
 
 # ========================== customer segmentation ==========================
 with tab2:
