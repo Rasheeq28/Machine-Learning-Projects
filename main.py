@@ -5539,10 +5539,33 @@ with tab1:
     # --- Feature Selection via Permutation Importance ---
 
     X_train_fs, X_test_fs, y_train_fs, y_test_fs = train_test_split(X, y, test_size=0.2, random_state=42)
-    model_fs = Ridge(alpha=1.0)
-    model_fs.fit(X_train_fs, y_train_fs)
 
-    perm_results = permutation_importance(model_fs, X_test_fs, y_test_fs, scoring='r2', n_repeats=10, random_state=42)
+    # Identify column types
+    numeric_cols_fs = X_train_fs.select_dtypes(include=["int64", "float64"]).columns.tolist()
+    cat_cols_fs = X_train_fs.select_dtypes(include=["object"]).columns.tolist()
+
+    # Preprocessing for Ridge model
+    preprocessor_fs = ColumnTransformer(
+        transformers=[
+            ('num', StandardScaler(), numeric_cols_fs),
+            ('cat', OneHotEncoder(handle_unknown='ignore'), cat_cols_fs)
+        ],
+        remainder='passthrough'
+    )
+
+    # Transform data
+    X_train_fs_encoded = preprocessor_fs.fit_transform(X_train_fs)
+    X_test_fs_encoded = preprocessor_fs.transform(X_test_fs)
+
+    # Fit Ridge model
+    model_fs = Ridge(alpha=1.0)
+    model_fs.fit(X_train_fs_encoded, y_train_fs)
+
+    # Permutation importance
+    perm_results = permutation_importance(model_fs, X_test_fs_encoded, y_test_fs, scoring='r2', n_repeats=10,
+                                          random_state=42)
+
+    # Display results
     importance_df = pd.DataFrame({
         "Feature": X.columns,
         "Importance": perm_results.importances_mean
@@ -5551,6 +5574,7 @@ with tab1:
     st.subheader("📌 Feature Importance (Permutation)")
     st.dataframe(importance_df)
 
+    # Select top features
     top_features = importance_df[importance_df["Importance"] > 0.01]["Feature"].tolist()
     X = df[top_features]
 
