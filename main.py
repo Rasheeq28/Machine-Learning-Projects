@@ -5522,8 +5522,15 @@ with tab1:
     y = df[target]
 
     # --- Preprocessing Pipelines ---
-    numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
-    cat_cols = X.select_dtypes(include=["object"]).columns.tolist()
+    numeric_cols = X.select_dtypes(include=['int64', 'float64']).columns.tolist()
+    cat_cols = X.select_dtypes(include=['object']).columns.tolist()
+
+    preprocessor_linear = ColumnTransformer(
+        transformers=[
+            ('num', StandardScaler(), numeric_cols),
+            ('cat', OneHotEncoder(handle_unknown='ignore'), cat_cols)
+        ]
+    )
 
     if not numeric_cols:
         st.error("No numeric columns found for scaling!")
@@ -5586,8 +5593,8 @@ with tab1:
     tuned_multi_linear = GridSearchCV(multi_linear_pipeline, param_grid, cv=cv_strategy, scoring='r2', verbose=1)
     tuned_poly = GridSearchCV(poly_pipeline, param_grid, cv=cv_strategy, scoring='r2', verbose=1)
 
-    tuned_multi_linear.fit(X, y)
-    tuned_poly.fit(X, y)
+    tuned_multi_linear.fit(X_train, y_train)
+    tuned_poly.fit(X_train, y_train)
 
     best_linear_params = tuned_multi_linear.best_params_
     best_linear_score = tuned_multi_linear.best_score_
