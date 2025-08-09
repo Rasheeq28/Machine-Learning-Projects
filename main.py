@@ -5776,7 +5776,8 @@ with tab1:
     # Plot number of features vs CV score
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots()
-    ax.plot(range(1, len(rfecv.grid_scores_) + 1), rfecv.grid_scores_)
+    ax.plot(range(1, len(rfecv.cv_results_['mean_test_score']) + 1), rfecv.cv_results_['mean_test_score'])
+
     ax.set_xlabel("Number of features selected")
     ax.set_ylabel("Cross-validation R² score")
     ax.set_title("RFECV - Number of Features vs CV Score")
