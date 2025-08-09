@@ -5273,11 +5273,13 @@ import warnings
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV, RepeatedKFold
 from sklearn.linear_model import LinearRegression, Ridge
-from sklearn.preprocessing import PolynomialFeatures, StandardScaler, OneHotEncoder
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler, OneHotEncoder, MinMaxScaler
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import plotly.graph_objects as go
+from sklearn.preprocessing import MinMaxScaler
+
 
 
 
