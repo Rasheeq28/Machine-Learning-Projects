@@ -5813,22 +5813,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
 with tab1:
     import warnings
     warnings.filterwarnings("ignore", category=UserWarning)
-
-    import streamlit as st
-    import matplotlib.pyplot as plt
-    import plotly.express as px
-    import numpy as np
-    import pandas as pd
-    from sklearn.impute import SimpleImputer
-    from sklearn.linear_model import Ridge
-    from sklearn.model_selection import train_test_split, GridSearchCV, RepeatedKFold
-    from sklearn.pipeline import Pipeline
-    from sklearn.compose import ColumnTransformer
-    from sklearn.preprocessing import StandardScaler, OneHotEncoder, PolynomialFeatures
-    from sklearn.feature_selection import RFECV
-    from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
-
-    st.subheader("📊 Student Score Predictor with Feature Engineering, RFECV & Hyperparameter Tuning")
+    st.subheader("📊 Student Score Predictor with Feature Engineering & Hyperparameter Tuning")
 
     # Load dataset and drop missing rows
     csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
@@ -5837,7 +5822,6 @@ with tab1:
 
     target = "Exam_Score"
 
-    # Features list
     features = [
         "Hours_Studied", "Attendance", "Parental_Involvement", "Access_to_Resources",
         "Extracurricular_Activities", "Sleep_Hours", "Previous_Scores",
@@ -5856,11 +5840,9 @@ with tab1:
     # Feature Engineering: binned Hours_Studied
     X['Hours_Studied_Binned'] = pd.cut(X['Hours_Studied'], bins=[0,10,20,30,100], labels=['Low','Medium','High','Very High'])
 
-    # Update feature lists
     numeric_cols = X.select_dtypes(include=['int64', 'float64']).columns.tolist()
     cat_cols = X.select_dtypes(include=['object', 'category']).columns.tolist()
 
-    # Preprocessing pipelines
     poly_features_list = ["Hours_Studied", "Previous_Scores", "Sleep_Hours"]
 
     numeric_poly_transformer = Pipeline([
@@ -5885,21 +5867,18 @@ with tab1:
         remainder='drop'
     )
 
-    # Train-test split
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Step 1: GridSearchCV to tune Ridge alpha in pipeline
-    base_ridge = Ridge()
     pipeline = Pipeline([
         ('preprocessor', preprocessor),
-        ('regressor', base_ridge)
+        ('regressor', Ridge())
     ])
 
     param_grid = {
         'regressor__alpha': np.logspace(-4, 4, 10)
     }
 
-    st.write("Running GridSearchCV to find the best Ridge alpha (this might take a while)...")
+    st.write("Running GridSearchCV to find best Ridge alpha (this might take a while)...")
     grid_search = GridSearchCV(
         pipeline,
         param_grid=param_grid,
@@ -5914,40 +5893,8 @@ with tab1:
     st.write(f"Best alpha found: {best_alpha:.6f}")
     st.write(f"Best cross-validation R² score: {grid_search.best_score_:.4f}")
 
-    # Step 2: RFECV for feature selection using the best alpha Ridge model
-    best_ridge = Ridge(alpha=best_alpha)
-
-    pipeline_best = Pipeline([
-        ('preprocessor', preprocessor),
-        ('regressor', best_ridge)
-    ])
-
-    rfecv = RFECV(
-        estimator=pipeline_best,
-        step=1,
-        cv=RepeatedKFold(n_splits=5, n_repeats=2, random_state=42),
-        scoring='r2',
-        min_features_to_select=5,
-        n_jobs=1,  # disable parallelism for error visibility
-        verbose=3
-    )
-    rfecv.fit(X_train, y_train)
-
-    st.write("Running RFECV for feature selection (this might take a while)...")
-    rfecv.fit(X_train, y_train)
-
-    st.write(f"Optimal number of features selected by RFECV: {rfecv.n_features_}")
-
-    # Plot RFECV scores (number of features vs CV score)
-    fig, ax = plt.subplots()
-    ax.plot(range(1, len(rfecv.grid_scores_) + 1), rfecv.grid_scores_)
-    ax.set_xlabel("Number of features selected")
-    ax.set_ylabel("Cross-validation R² score")
-    ax.set_title("RFECV - Number of Features vs CV Score")
-    st.pyplot(fig)
-
     # Evaluate on test set
-    y_pred = rfecv.predict(X_test)
+    y_pred = grid_search.predict(X_test)
 
     r2 = r2_score(y_test, y_pred)
     mae = mean_absolute_error(y_test, y_pred)
@@ -5960,13 +5907,13 @@ with tab1:
     st.write(f"MSE: {mse:.4f}")
     st.write(f"RMSE: {rmse:.4f}")
 
-    # Plot actual vs predicted
-    fig2 = px.scatter(x=y_test, y=y_pred,
-                      labels={'x': 'Actual Exam Score', 'y': 'Predicted Exam Score'},
-                      title="Actual vs Predicted Scores")
-    fig2.add_shape(type='line', x0=y.min(), y0=y.min(), x1=y.max(), y1=y.max(),
-                   line=dict(color='red', dash='dash'))
-    st.plotly_chart(fig2, use_container_width=True)
+    fig = px.scatter(x=y_test, y=y_pred,
+                     labels={'x': 'Actual Exam Score', 'y': 'Predicted Exam Score'},
+                     title="Actual vs Predicted Scores")
+    fig.add_shape(type='line', x0=y.min(), y0=y.min(), x1=y.max(), y1=y.max(),
+                  line=dict(color='red', dash='dash'))
+    st.plotly_chart(fig, use_container_width=True)
+
 
 # ========================== customer segmentation ==========================
 with tab2:
