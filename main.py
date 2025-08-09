@@ -5928,9 +5928,10 @@ with tab1:
         cv=RepeatedKFold(n_splits=5, n_repeats=2, random_state=42),
         scoring='r2',
         min_features_to_select=5,
-        n_jobs=-1,
-        verbose=1
+        n_jobs=1,  # disable parallelism for error visibility
+        verbose=3
     )
+    rfecv.fit(X_train, y_train)
 
     st.write("Running RFECV for feature selection (this might take a while)...")
     rfecv.fit(X_train, y_train)
