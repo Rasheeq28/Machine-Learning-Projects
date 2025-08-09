@@ -5814,7 +5814,20 @@ with tab1:
     st.subheader("📊 Student Score Predictor with Feature Engineering, RFECV & Hyperparameter Tuning")
     warnings.filterwarnings("ignore", category=UserWarning)
 
-    # Load dataset and drop missing
+    import matplotlib.pyplot as plt
+    from sklearn.impute import SimpleImputer
+    from sklearn.linear_model import Ridge
+    from sklearn.model_selection import train_test_split, GridSearchCV, RepeatedKFold
+    from sklearn.pipeline import Pipeline
+    from sklearn.compose import ColumnTransformer
+    from sklearn.preprocessing import StandardScaler, OneHotEncoder, PolynomialFeatures
+    from sklearn.feature_selection import RFECV
+    from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+    import plotly.express as px
+    import numpy as np
+    import pandas as pd
+
+    # Load dataset and drop missing rows
     csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
     df_raw = pd.read_csv(csv_url)
     df = df_raw.dropna()
@@ -5837,25 +5850,26 @@ with tab1:
     X = df[features].copy()
     y = df[target]
 
-    # Feature Engineering: add binned Hours_Studied
+    # Feature Engineering: binned Hours_Studied
     X['Hours_Studied_Binned'] = pd.cut(X['Hours_Studied'], bins=[0,10,20,30,100], labels=['Low','Medium','High','Very High'])
-    # Update categorical cols list
+
+    # Update feature lists
     numeric_cols = X.select_dtypes(include=['int64', 'float64']).columns.tolist()
     cat_cols = X.select_dtypes(include=['object', 'category']).columns.tolist()
 
     # Preprocessing pipelines
     poly_features_list = ["Hours_Studied", "Previous_Scores", "Sleep_Hours"]
 
-    numeric_poly_transformer = Pipeline(steps=[
+    numeric_poly_transformer = Pipeline([
         ('poly', PolynomialFeatures(degree=2, include_bias=False)),
         ('scaler', StandardScaler())
     ])
 
-    numeric_scaler = Pipeline(steps=[
+    numeric_scaler = Pipeline([
         ('scaler', StandardScaler())
     ])
 
-    categorical_transformer = Pipeline(steps=[
+    categorical_transformer = Pipeline([
         ('onehot', OneHotEncoder(handle_unknown='ignore'))
     ])
 
@@ -5868,20 +5882,16 @@ with tab1:
         remainder='drop'
     )
 
-    # Define base Ridge regressor with default alpha=1.0 (will tune alpha)
+    # Define base Ridge regressor
     base_ridge = Ridge()
 
-    # Pipeline that first preprocesses then applies Ridge regression
+    # Full pipeline: preprocessing + regressor
     pipeline = Pipeline([
         ('preprocessor', preprocessor),
         ('regressor', base_ridge)
     ])
 
-    # RFECV for feature selection wrapped around the pipeline:
-    # But since pipeline includes preprocessing, we do RFECV on full pipeline
-    # Warning: RFECV expects estimator with fit/predict and supports coef_ or feature_importances_
-    # Ridge supports coef_, so RFECV works.
-
+    # RFECV wrapped around pipeline
     rfecv = RFECV(
         estimator=pipeline,
         step=1,
@@ -5892,11 +5902,11 @@ with tab1:
         verbose=1
     )
 
+    # Param grid for GridSearchCV: tuning Ridge alpha inside the pipeline inside RFECV
     param_grid = {
         'estimator__regressor__alpha': np.logspace(-4, 4, 10)
     }
 
-    # GridSearchCV wrapping RFECV
     grid_search = GridSearchCV(
         rfecv,
         param_grid=param_grid,
@@ -5906,26 +5916,25 @@ with tab1:
         verbose=2
     )
 
-    # Split train/test
+    # Train-test split
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     st.write("Running GridSearchCV with RFECV for feature selection (this might take a while)...")
     grid_search.fit(X_train, y_train)
 
-    st.write(f"Best alpha found: {grid_search.best_params_['regressor__alpha']}")
+    best_alpha = grid_search.best_params_['estimator__regressor__alpha']
+    st.write(f"Best alpha found: {best_alpha:.6f}")
     st.write(f"Best cross-validation R² score: {grid_search.best_score_:.4f}")
 
-    # Get the best estimator (RFECV pipeline)
     best_rfecv_pipeline = grid_search.best_estimator_
 
-    # RFECV results
     n_features_opt = best_rfecv_pipeline.n_features_
     st.write(f"Optimal number of features selected by RFECV: {n_features_opt}")
 
-    # Plot RFECV scores
-    import matplotlib.pyplot as plt
+    # Plot RFECV scores (number of features vs CV score)
     fig, ax = plt.subplots()
-    ax.plot(range(1, len(best_rfecv_pipeline.grid_scores_) + 1), best_rfecv_pipeline.grid_scores_)
+    ax.plot(range(1, len(best_rfecv_pipeline.cv_results_['mean_test_score']) + 1),
+            best_rfecv_pipeline.cv_results_['mean_test_score'])
     ax.set_xlabel("Number of features selected")
     ax.set_ylabel("Cross-validation R² score")
     ax.set_title("RFECV - Number of Features vs CV Score")
@@ -5946,10 +5955,13 @@ with tab1:
     st.write(f"RMSE: {rmse:.4f}")
 
     # Plot actual vs predicted
-    fig2 = px.scatter(x=y_test, y=y_pred, labels={'x': 'Actual Exam Score', 'y': 'Predicted Exam Score'}, title="Actual vs Predicted Scores")
+    fig2 = px.scatter(x=y_test, y=y_pred,
+                      labels={'x': 'Actual Exam Score', 'y': 'Predicted Exam Score'},
+                      title="Actual vs Predicted Scores")
     fig2.add_shape(type='line', x0=y.min(), y0=y.min(), x1=y.max(), y1=y.max(),
                    line=dict(color='red', dash='dash'))
     st.plotly_chart(fig2, use_container_width=True)
+
 # ========================== customer segmentation ==========================
 with tab2:
     st.subheader("🧍 Customer Segmentation using Clustering")
