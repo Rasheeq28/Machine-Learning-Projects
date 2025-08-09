@@ -5694,8 +5694,124 @@ tab1, tab2, tab3, tab4 = st.tabs([
 #                                    columns=["Model", "R²", "MAE", "MSE", "RMSE"])
 #     st.dataframe(test_metrics_df.set_index("Model"))
 #
+
+# custom 2
+# with tab1:
+#     st.subheader("📊 Student Score Predictor with Robust Feature Engineering and Feature Selection")
+#     warnings.filterwarnings("ignore", category=UserWarning)
+#
+#     # Load dataset and drop missing
+#     csv_url = "https://raw.githubusercontent.com/Rasheeq28/datasets/main/StudentPerformanceFactors.csv"
+#     df_raw = pd.read_csv(csv_url)
+#     df = df_raw.dropna()
+#
+#     target = "Exam_Score"
+#
+#     # Features list (as before)
+#     features = [
+#         "Hours_Studied", "Attendance", "Parental_Involvement", "Access_to_Resources",
+#         "Extracurricular_Activities", "Sleep_Hours", "Previous_Scores",
+#         "Motivation_Level", "Internet_Access", "Tutoring_Sessions",
+#         "Family_Income", "Teacher_Quality", "School_Type",
+#         "Peer_Influence", "Physical_Activity",
+#         "Learning_Disabilities", "Parental_Education_Level",
+#         "Distance_from_Home",
+#         "Gender"
+#     ]
+#     features = [f for f in features if f in df.columns]
+#
+#     X = df[features]
+#     y = df[target]
+#
+#     numeric_cols = X.select_dtypes(include=['int64', 'float64']).columns.tolist()
+#     cat_cols = X.select_dtypes(include=['object']).columns.tolist()
+#
+#     # --- Feature Engineering ---
+#
+#     # Example: Create binned version of Hours_Studied
+#     X['Hours_Studied_Binned'] = pd.cut(X['Hours_Studied'], bins=[0,10,20,30,100], labels=['Low','Medium','High','Very High'])
+#     cat_cols.append('Hours_Studied_Binned')
+#
+#     # Update categorical features list after adding new categorical feature
+#     cat_cols = list(set(cat_cols))
+#
+#     # Build preprocessing pipelines
+#     numeric_transformer = Pipeline([
+#         ('poly', PolynomialFeatures(degree=2, include_bias=False)),
+#         ('scaler', StandardScaler())
+#     ])
+#
+#     categorical_transformer = Pipeline([
+#         ('onehot', OneHotEncoder(handle_unknown='ignore'))
+#     ])
+#
+#     preprocessor = ColumnTransformer([
+#         ('num', numeric_transformer, numeric_cols),
+#         ('cat', categorical_transformer, cat_cols)
+#     ])
+#
+#     # Prepare full pipeline with Ridge regression (you can swap regressor for RF, XGB, etc.)
+#     model = Pipeline([
+#         ('preprocessor', preprocessor),
+#         ('regressor', Ridge(alpha=1.0))
+#     ])
+#
+#     # --- Feature Selection with RFECV ---
+#
+#     st.write("Running Recursive Feature Elimination with Cross-Validation (this may take some time)...")
+#
+#     rfecv = RFECV(
+#         estimator=Ridge(alpha=1.0),
+#         step=1,
+#         cv=5,
+#         scoring='r2',
+#         min_features_to_select=5,
+#         n_jobs=-1
+#     )
+#
+#     # Fit RFECV on preprocessed features manually (preprocess X first)
+#     X_processed = preprocessor.fit_transform(X)
+#     rfecv.fit(X_processed, y)
+#
+#     st.write(f"Optimal number of features selected by RFECV: {rfecv.n_features_}")
+#
+#     # Plot number of features vs CV score
+#     import matplotlib.pyplot as plt
+#     fig, ax = plt.subplots()
+#     ax.plot(range(1, len(rfecv.cv_results_['mean_test_score']) + 1), rfecv.cv_results_['mean_test_score'])
+#
+#     ax.set_xlabel("Number of features selected")
+#     ax.set_ylabel("Cross-validation R² score")
+#     ax.set_title("RFECV - Number of Features vs CV Score")
+#     st.pyplot(fig)
+#
+#     # Selected features mask (Note: because preprocessing transforms, feature names are tricky)
+#     # We can at least show original feature set info:
+#     selected_mask = rfecv.support_
+#     st.write(f"Features selected (mask): {selected_mask}")
+#
+#     # Retrain model on selected features
+#     X_selected = X_processed[:, selected_mask]
+#
+#     # Split train-test
+#     from sklearn.model_selection import train_test_split
+#     X_train_sel, X_test_sel, y_train_sel, y_test_sel = train_test_split(X_selected, y, test_size=0.2, random_state=42)
+#
+#     model_reg = Ridge(alpha=1.0)
+#     model_reg.fit(X_train_sel, y_train_sel)
+#     y_pred = model_reg.predict(X_test_sel)
+#
+#     r2 = r2_score(y_test_sel, y_pred)
+#     mae = mean_absolute_error(y_test_sel, y_pred)
+#     st.write(f"Test Set Performance on Selected Features — R²: {r2:.4f}, MAE: {mae:.4f}")
+#
+#     # Visualize actual vs predicted
+#     fig2 = px.scatter(x=y_test_sel, y=y_pred, labels={'x': 'Actual Exam Score', 'y': 'Predicted Exam Score'}, title="Actual vs Predicted Scores")
+#     fig2.add_shape(type='line', x0=y.min(), y0=y.min(), x1=y.max(), y1=y.max(), line=dict(color='red', dash='dash'))
+#     st.plotly_chart(fig2, use_container_width=True)
+
 with tab1:
-    st.subheader("📊 Student Score Predictor with Robust Feature Engineering and Feature Selection")
+    st.subheader("📊 Student Score Predictor with Feature Engineering, RFECV & Hyperparameter Tuning")
     warnings.filterwarnings("ignore", category=UserWarning)
 
     # Load dataset and drop missing
@@ -5705,7 +5821,7 @@ with tab1:
 
     target = "Exam_Score"
 
-    # Features list (as before)
+    # Features list
     features = [
         "Hours_Studied", "Attendance", "Parental_Involvement", "Access_to_Resources",
         "Extracurricular_Activities", "Sleep_Hours", "Previous_Scores",
@@ -5718,94 +5834,122 @@ with tab1:
     ]
     features = [f for f in features if f in df.columns]
 
-    X = df[features]
+    X = df[features].copy()
     y = df[target]
 
-    numeric_cols = X.select_dtypes(include=['int64', 'float64']).columns.tolist()
-    cat_cols = X.select_dtypes(include=['object']).columns.tolist()
-
-    # --- Feature Engineering ---
-
-    # Example: Create binned version of Hours_Studied
+    # Feature Engineering: add binned Hours_Studied
     X['Hours_Studied_Binned'] = pd.cut(X['Hours_Studied'], bins=[0,10,20,30,100], labels=['Low','Medium','High','Very High'])
-    cat_cols.append('Hours_Studied_Binned')
+    # Update categorical cols list
+    numeric_cols = X.select_dtypes(include=['int64', 'float64']).columns.tolist()
+    cat_cols = X.select_dtypes(include=['object', 'category']).columns.tolist()
 
-    # Update categorical features list after adding new categorical feature
-    cat_cols = list(set(cat_cols))
+    # Preprocessing pipelines
+    poly_features_list = ["Hours_Studied", "Previous_Scores", "Sleep_Hours"]
 
-    # Build preprocessing pipelines
-    numeric_transformer = Pipeline([
+    numeric_poly_transformer = Pipeline(steps=[
         ('poly', PolynomialFeatures(degree=2, include_bias=False)),
         ('scaler', StandardScaler())
     ])
 
-    categorical_transformer = Pipeline([
+    numeric_scaler = Pipeline(steps=[
+        ('scaler', StandardScaler())
+    ])
+
+    categorical_transformer = Pipeline(steps=[
         ('onehot', OneHotEncoder(handle_unknown='ignore'))
     ])
 
-    preprocessor = ColumnTransformer([
-        ('num', numeric_transformer, numeric_cols),
-        ('cat', categorical_transformer, cat_cols)
-    ])
-
-    # Prepare full pipeline with Ridge regression (you can swap regressor for RF, XGB, etc.)
-    model = Pipeline([
-        ('preprocessor', preprocessor),
-        ('regressor', Ridge(alpha=1.0))
-    ])
-
-    # --- Feature Selection with RFECV ---
-
-    st.write("Running Recursive Feature Elimination with Cross-Validation (this may take some time)...")
-
-    rfecv = RFECV(
-        estimator=Ridge(alpha=1.0),
-        step=1,
-        cv=5,
-        scoring='r2',
-        min_features_to_select=5,
-        n_jobs=-1
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('poly_num', numeric_poly_transformer, poly_features_list),
+            ('other_num', numeric_scaler, [col for col in numeric_cols if col not in poly_features_list]),
+            ('cat', categorical_transformer, cat_cols)
+        ],
+        remainder='drop'
     )
 
-    # Fit RFECV on preprocessed features manually (preprocess X first)
-    X_processed = preprocessor.fit_transform(X)
-    rfecv.fit(X_processed, y)
+    # Define base Ridge regressor with default alpha=1.0 (will tune alpha)
+    base_ridge = Ridge()
 
-    st.write(f"Optimal number of features selected by RFECV: {rfecv.n_features_}")
+    # Pipeline that first preprocesses then applies Ridge regression
+    pipeline = Pipeline([
+        ('preprocessor', preprocessor),
+        ('regressor', base_ridge)
+    ])
 
-    # Plot number of features vs CV score
+    # RFECV for feature selection wrapped around the pipeline:
+    # But since pipeline includes preprocessing, we do RFECV on full pipeline
+    # Warning: RFECV expects estimator with fit/predict and supports coef_ or feature_importances_
+    # Ridge supports coef_, so RFECV works.
+
+    rfecv = RFECV(
+        estimator=pipeline,
+        step=1,
+        cv=RepeatedKFold(n_splits=5, n_repeats=2, random_state=42),
+        scoring='r2',
+        min_features_to_select=5,
+        n_jobs=-1,
+        verbose=1
+    )
+
+    # Grid search parameters for Ridge alpha (inside pipeline named 'regressor')
+    param_grid = {
+        'regressor__alpha': np.logspace(-4, 4, 10)
+    }
+
+    # GridSearchCV wrapping RFECV
+    grid_search = GridSearchCV(
+        rfecv,
+        param_grid=param_grid,
+        cv=RepeatedKFold(n_splits=5, n_repeats=2, random_state=42),
+        scoring='r2',
+        n_jobs=-1,
+        verbose=2
+    )
+
+    # Split train/test
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    st.write("Running GridSearchCV with RFECV for feature selection (this might take a while)...")
+    grid_search.fit(X_train, y_train)
+
+    st.write(f"Best alpha found: {grid_search.best_params_['regressor__alpha']}")
+    st.write(f"Best cross-validation R² score: {grid_search.best_score_:.4f}")
+
+    # Get the best estimator (RFECV pipeline)
+    best_rfecv_pipeline = grid_search.best_estimator_
+
+    # RFECV results
+    n_features_opt = best_rfecv_pipeline.n_features_
+    st.write(f"Optimal number of features selected by RFECV: {n_features_opt}")
+
+    # Plot RFECV scores
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots()
-    ax.plot(range(1, len(rfecv.cv_results_['mean_test_score']) + 1), rfecv.cv_results_['mean_test_score'])
-
+    ax.plot(range(1, len(best_rfecv_pipeline.grid_scores_) + 1), best_rfecv_pipeline.grid_scores_)
     ax.set_xlabel("Number of features selected")
     ax.set_ylabel("Cross-validation R² score")
     ax.set_title("RFECV - Number of Features vs CV Score")
     st.pyplot(fig)
 
-    # Selected features mask (Note: because preprocessing transforms, feature names are tricky)
-    # We can at least show original feature set info:
-    selected_mask = rfecv.support_
-    st.write(f"Features selected (mask): {selected_mask}")
+    # Evaluate on test set
+    y_pred = best_rfecv_pipeline.predict(X_test)
 
-    # Retrain model on selected features
-    X_selected = X_processed[:, selected_mask]
+    r2 = r2_score(y_test, y_pred)
+    mae = mean_absolute_error(y_test, y_pred)
+    mse = mean_squared_error(y_test, y_pred)
+    rmse = np.sqrt(mse)
 
-    # Split train-test
-    from sklearn.model_selection import train_test_split
-    X_train_sel, X_test_sel, y_train_sel, y_test_sel = train_test_split(X_selected, y, test_size=0.2, random_state=42)
+    st.subheader("Test Set Performance Metrics")
+    st.write(f"R²: {r2:.4f}")
+    st.write(f"MAE: {mae:.4f}")
+    st.write(f"MSE: {mse:.4f}")
+    st.write(f"RMSE: {rmse:.4f}")
 
-    model_reg = Ridge(alpha=1.0)
-    model_reg.fit(X_train_sel, y_train_sel)
-    y_pred = model_reg.predict(X_test_sel)
-
-    r2 = r2_score(y_test_sel, y_pred)
-    mae = mean_absolute_error(y_test_sel, y_pred)
-    st.write(f"Test Set Performance on Selected Features — R²: {r2:.4f}, MAE: {mae:.4f}")
-
-    # Visualize actual vs predicted
-    fig2 = px.scatter(x=y_test_sel, y=y_pred, labels={'x': 'Actual Exam Score', 'y': 'Predicted Exam Score'}, title="Actual vs Predicted Scores")
-    fig2.add_shape(type='line', x0=y.min(), y0=y.min(), x1=y.max(), y1=y.max(), line=dict(color='red', dash='dash'))
+    # Plot actual vs predicted
+    fig2 = px.scatter(x=y_test, y=y_pred, labels={'x': 'Actual Exam Score', 'y': 'Predicted Exam Score'}, title="Actual vs Predicted Scores")
+    fig2.add_shape(type='line', x0=y.min(), y0=y.min(), x1=y.max(), y1=y.max(),
+                   line=dict(color='red', dash='dash'))
     st.plotly_chart(fig2, use_container_width=True)
 # ========================== customer segmentation ==========================
 with tab2:
