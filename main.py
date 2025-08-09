@@ -5323,6 +5323,9 @@ with tab1:
     df_raw = pd.read_csv(csv_url)
     df = df_raw.copy()
 
+    # --- Drop Missing Values ---
+    df.dropna(inplace=True)
+
     # --- Exploratory Data Analysis (EDA) ---
     st.subheader("🔍 Dataset Overview")
     st.write("**First 5 Rows of Raw Data:**")
@@ -5332,23 +5335,15 @@ with tab1:
     st.write("**Column Types:**")
     st.write(df.dtypes)
 
-    # Summary statistics
     st.subheader("📈 Summary Statistics")
-    st.write(df.describe().T)  # Numeric summary
-    st.write("**Median Values:**")
-    st.write(df.median(numeric_only=True))
-    st.write("**Mode Values:**")
-    st.write(df.mode().iloc[0])
+    st.write(df.describe(include="all").T)
 
-    # Missing values
     st.subheader("🚨 Missing Values")
     st.write(df.isnull().sum())
 
     # Correlation heatmap for numeric features
-    st.subheader("📊 Correlation Heatmap (Numeric Features)")
     numeric_cols_corr = df.select_dtypes(include=["int64", "float64"])
     corr = numeric_cols_corr.corr()
-
     fig_corr = go.Figure(data=go.Heatmap(
         z=corr.values,
         x=corr.columns,
@@ -5359,111 +5354,32 @@ with tab1:
     fig_corr.update_layout(title="Correlation Heatmap", xaxis_nticks=36)
     st.plotly_chart(fig_corr, use_container_width=True)
 
-    # Distribution of numeric features
-    st.subheader("📊 Numeric Feature Distributions")
-    for col in numeric_cols_corr.columns:
-        fig_hist = go.Figure()
-        fig_hist.add_trace(go.Histogram(x=df[col], nbinsx=20, marker_color="lightblue"))
-        fig_hist.update_layout(title=f"Histogram of {col}", xaxis_title=col, yaxis_title="Count")
-        st.plotly_chart(fig_hist, use_container_width=True)
-
-    # Bar plots for categorical features
-    st.subheader("📊 Categorical Feature Distributions")
-    cat_cols_eda = df.select_dtypes(include=["object"]).columns
-    for col in cat_cols_eda:
-        fig_bar = go.Figure()
-        fig_bar.add_trace(go.Bar(
-            x=df[col].value_counts().index,
-            y=df[col].value_counts().values,
-            marker_color="orange"
-        ))
-        fig_bar.update_layout(title=f"Bar Chart of {col}", xaxis_title=col, yaxis_title="Count")
-        st.plotly_chart(fig_bar, use_container_width=True)
-
-    # Outlier detection - Boxplots for numeric features
-    st.subheader("📦 Outlier Visualization (Boxplots)")
-    for col in numeric_cols_corr.columns:
-        fig_box = go.Figure()
-        fig_box.add_trace(go.Box(y=df[col], name=col, marker_color="lightgreen"))
-        fig_box.update_layout(title=f"Boxplot of {col}")
-        st.plotly_chart(fig_box, use_container_width=True)
-
-    st.markdown("---")
-
-    # --- Advanced Missing Value Imputation ---
-    numeric_cols = df.select_dtypes(include=["int64", "float64"]).columns
-    cat_cols = df.select_dtypes(include=["object"]).columns
-
-    num_imputer = SimpleImputer(strategy='median')
-    cat_imputer = SimpleImputer(strategy='most_frequent')
-
-    df[numeric_cols] = num_imputer.fit_transform(df[numeric_cols])
-    df[cat_cols] = cat_imputer.fit_transform(df[cat_cols])
-
-    # (Your existing feature engineering and modeling code continues below...)
-
+    # Features & Target
     target = "Exam_Score"
-
-    features = [
-        "Hours_Studied",
-        "Attendance",
-        "Parental_Involvement",
-        # "Access_to_Resources",
-        # "Extracurricular_Activities",
-        "Sleep_Hours",
-        "Previous_Scores",
-        "Motivation_Level",
-        # "Internet_Access",
-        "Tutoring_Sessions",
-        # "Family_Income",
-        # "Teacher_Quality",
-        # "School_Type",
-        # "Peer_Influence",
-        # "Physical_Activity",
-        # "Learning_Disabilities",
-        # "Parental_Education_Level",
-        # "Distance_from_Home"
-        #  "Gender"
-    ]
-    features = [f for f in features if f in df.columns]
+    features = [col for col in df.columns if col != target]
 
     X = df[features]
     y = df[target]
 
-    # --- Preprocessing Pipelines ---
+    # --- Identify Column Types ---
     numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
     cat_cols = X.select_dtypes(include=["object"]).columns.tolist()
 
-    poly_features_list = ["Hours_Studied", "Previous_Scores", "Sleep_Hours"]
-
-    numeric_poly_transformer = Pipeline(steps=[
-        ('poly', PolynomialFeatures(degree=2, include_bias=False)),
-        ('scaler', StandardScaler())
-    ])
-
-    numeric_scaler = Pipeline(steps=[
-        ('scaler', StandardScaler())
+    # --- Preprocessing Pipelines ---
+    numeric_transformer = Pipeline(steps=[
+        ('scaler', StandardScaler())  # Standardises numeric columns
     ])
 
     categorical_transformer = Pipeline(steps=[
-        ('onehot', OneHotEncoder(handle_unknown='ignore'))
+        ('onehot', OneHotEncoder(handle_unknown='ignore')),
+        ('minmax', MinMaxScaler())  # Scales encoded categories between 0 and 1
     ])
 
-    preprocessor_poly = ColumnTransformer(
+    preprocessor = ColumnTransformer(
         transformers=[
-            ('poly_num', numeric_poly_transformer, poly_features_list),
-            ('other_num', numeric_scaler, [col for col in numeric_cols if col not in poly_features_list]),
+            ('num', numeric_transformer, numeric_cols),
             ('cat', categorical_transformer, cat_cols)
-        ],
-        remainder='passthrough'
-    )
-
-    preprocessor_linear = ColumnTransformer(
-        transformers=[
-            ('scaler', StandardScaler(), numeric_cols),
-            ('onehot', OneHotEncoder(handle_unknown='ignore'), cat_cols)
-        ],
-        remainder='passthrough'
+        ]
     )
 
     # Train-test split
@@ -5475,88 +5391,60 @@ with tab1:
     param_grid = {'regressor__alpha': np.logspace(-4, 4, 10)}
 
     multi_linear_pipeline = Pipeline(steps=[
-        ('preprocessor', preprocessor_linear),
+        ('preprocessor', preprocessor),
         ('regressor', Ridge())
     ])
 
-    poly_pipeline = Pipeline(steps=[
-        ('preprocessor', preprocessor_poly),
-        ('regressor', Ridge())
-    ])
-
-    cv_strategy = RepeatedKFold(n_splits=5, n_repeats=3, random_state=42)
-
-    tuned_multi_linear = GridSearchCV(multi_linear_pipeline, param_grid, cv=cv_strategy, scoring='r2', verbose=1)
-    tuned_poly = GridSearchCV(poly_pipeline, param_grid, cv=cv_strategy, scoring='r2', verbose=1)
-
+    tuned_multi_linear = GridSearchCV(multi_linear_pipeline, param_grid, cv=5, scoring='r2', verbose=1)
     tuned_multi_linear.fit(X, y)
-    tuned_poly.fit(X, y)
 
     best_linear_params = tuned_multi_linear.best_params_
     best_linear_score = tuned_multi_linear.best_score_
-    best_poly_params = tuned_poly.best_params_
-    best_poly_score = tuned_poly.best_score_
 
     st.write(f"Best Alpha for Multi-Feature Linear Regression (Ridge): **{best_linear_params['regressor__alpha']:.4f}** (R²: {best_linear_score:.4f})")
-    st.write(f"Best Alpha for Multi-Feature Polynomial (deg=2, Ridge): **{best_poly_params['regressor__alpha']:.4f}** (R²: {best_poly_score:.4f})")
 
     # Define models
     models = {
         "Simple Linear Regression": Pipeline(steps=[
-            ('scaler', StandardScaler()),
+            ('preprocessor', ColumnTransformer([
+                ('num', numeric_transformer, ["Hours_Studied"]),
+                ('cat', 'drop', cat_cols)  # drop other columns
+            ])),
             ('regressor', LinearRegression())
         ]),
-        "Multi-Feature Linear Regression (Tuned Ridge)": tuned_multi_linear.best_estimator_,
-        "Multi-Feature Polynomial (Tuned Ridge)": tuned_poly.best_estimator_
+        "Multi-Feature Linear Regression (Tuned Ridge)": tuned_multi_linear.best_estimator_
     }
 
-    # --- Cross-Validation ---
-    st.subheader("Model Performance with Cross-Validation")
+    # --- Cross-Validation (5-Fold) ---
+    st.subheader("Model Performance with 5-Fold Cross-Validation")
     cv_results = []
     r2_scores_dict = {}
 
     for name, model in models.items():
         if name == "Simple Linear Regression":
-            r2_scores = cross_val_score(model, X[["Hours_Studied"]], y, cv=cv_strategy, scoring='r2')
-            mae_scores = -cross_val_score(model, X[["Hours_Studied"]], y, cv=cv_strategy, scoring='neg_mean_absolute_error')
-            mse_scores = -cross_val_score(model, X[["Hours_Studied"]], y, cv=cv_strategy, scoring='neg_mean_squared_error')
-            rmse_scores = np.sqrt(mse_scores)
+            r2_scores = cross_val_score(model, X[["Hours_Studied"]], y, cv=5, scoring='r2')
+            mae_scores = -cross_val_score(model, X[["Hours_Studied"]], y, cv=5, scoring='neg_mean_absolute_error')
+            mse_scores = -cross_val_score(model, X[["Hours_Studied"]], y, cv=5, scoring='neg_mean_squared_error')
         else:
-            r2_scores = cross_val_score(model, X, y, cv=cv_strategy, scoring='r2')
-            mae_scores = -cross_val_score(model, X, y, cv=cv_strategy, scoring='neg_mean_absolute_error')
-            mse_scores = -cross_val_score(model, X, y, cv=cv_strategy, scoring='neg_mean_squared_error')
-            rmse_scores = np.sqrt(mse_scores)
+            r2_scores = cross_val_score(model, X, y, cv=5, scoring='r2')
+            mae_scores = -cross_val_score(model, X, y, cv=5, scoring='neg_mean_absolute_error')
+            mse_scores = -cross_val_score(model, X, y, cv=5, scoring='neg_mean_squared_error')
 
+        rmse_scores = np.sqrt(mse_scores)
         r2_scores_dict[name] = r2_scores
-        cv_results.append([
-            name,
-            np.mean(r2_scores),
-            np.std(r2_scores),
-            np.mean(mae_scores),
-            np.mean(mse_scores),
-            np.mean(rmse_scores)
-        ])
+        cv_results.append([name, np.mean(r2_scores), np.std(r2_scores), np.mean(mae_scores), np.mean(mse_scores), np.mean(rmse_scores)])
 
-    cv_df = pd.DataFrame(cv_results,
-                         columns=["Model", "Mean CV R²", "Std Dev CV R²", "Mean CV MAE", "Mean CV MSE", "Mean CV RMSE"])
+    cv_df = pd.DataFrame(cv_results, columns=["Model", "Mean CV R²", "Std Dev CV R²", "Mean CV MAE", "Mean CV MSE", "Mean CV RMSE"])
     st.dataframe(cv_df.set_index("Model"))
 
     # --- Visualization of CV Results ---
-    st.subheader("R² Scores for Each Cross-Validation Fold")
     fig_cv = go.Figure()
     for name, scores in r2_scores_dict.items():
         fig_cv.add_trace(go.Box(y=scores, name=name))
-
-    fig_cv.update_layout(title="R² Scores Distribution across 15 Folds",
-                         yaxis_title="R² Score",
-                         showlegend=False)
+    fig_cv.update_layout(title="R² Scores Distribution across 5 Folds", yaxis_title="R² Score")
     st.plotly_chart(fig_cv, use_container_width=True)
 
     # --- Actual vs Predicted ---
-    st.subheader("Actual vs Predicted Scores on Test Set")
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=y_test, y=y_test, mode="lines", name="Perfect Fit", line=dict(color="white")))
-
     predictions = {}
     for name, model in models.items():
         if name == "Simple Linear Regression":
@@ -5569,13 +5457,6 @@ with tab1:
         model.fit(X_train_specific, y_train)
         y_pred = model.predict(X_test_specific)
         predictions[name] = y_pred
-        fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers", name=name))
-
-    fig.update_layout(title="Actual vs Predicted Scores", xaxis_title="Actual", yaxis_title="Predicted")
-    st.plotly_chart(fig, use_container_width=True)
-
-    # --- Test Set Metrics ---
-    st.subheader("Test Set Performance Metrics")
 
     test_metrics = []
     for name, y_pred in predictions.items():
@@ -5583,11 +5464,9 @@ with tab1:
         mae = mean_absolute_error(y_test, y_pred)
         mse = mean_squared_error(y_test, y_pred)
         rmse = np.sqrt(mse)
-
         test_metrics.append([name, r2, mae, mse, rmse])
 
-    test_metrics_df = pd.DataFrame(test_metrics,
-                                   columns=["Model", "R²", "MAE", "MSE", "RMSE"])
+    test_metrics_df = pd.DataFrame(test_metrics, columns=["Model", "R²", "MAE", "MSE", "RMSE"])
     st.dataframe(test_metrics_df.set_index("Model"))
 
 
