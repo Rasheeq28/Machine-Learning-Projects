@@ -5565,9 +5565,22 @@ with tab1:
     perm_results = permutation_importance(model_fs, X_test_fs_encoded, y_test_fs, scoring='r2', n_repeats=10,
                                           random_state=42)
 
-    # Display results
+    # Get transformed feature names
+    def get_feature_names(preprocessor):
+        output_features = []
+        for name, transformer, cols in preprocessor.transformers:
+            if hasattr(transformer, 'get_feature_names_out'):
+                names = transformer.get_feature_names_out(cols)
+            else:
+                names = cols
+            output_features.extend(names)
+        return output_features
+
+    feature_names = get_feature_names(preprocessor_fs)
+
+    # Create importance DataFrame
     importance_df = pd.DataFrame({
-        "Feature": X.columns,
+        "Feature": feature_names,
         "Importance": perm_results.importances_mean
     }).sort_values(by="Importance", ascending=False)
 
