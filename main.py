@@ -5276,13 +5276,14 @@ import plotly.graph_objects as go
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.metrics import precision_score, recall_score, f1_score
+from collections import Counter
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
 
@@ -5908,6 +5909,9 @@ with tab2:
 #         - Performance depends on the depth and structure of the tree.
 #
 #         """)
+
+
+
 with tab3:
     st.subheader("🏦 Loan Approval Prediction")
 
@@ -6045,8 +6049,6 @@ with tab3:
 
     # --- Decision Tree Model Subtab ---
     with dtree_tab:
-        from sklearn.tree import DecisionTreeClassifier
-
         url = "https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/loan_approval_dataset.csv"
         df = pd.read_csv(url)
         df.columns = df.columns.str.strip()
@@ -6059,48 +6061,58 @@ with tab3:
 
         X = df.drop(columns=["loan_id", "loan_status"])
 
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42)
+        # Check class balance
+        st.write("### Class distribution")
+        st.write(Counter(y))
+
+        # Use stratified split to maintain class proportions in train/test
+        strat_split = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+        for train_idx, test_idx in strat_split.split(X, y):
+            X_train_raw, X_test_raw = X.iloc[train_idx], X.iloc[test_idx]
+            y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
 
         numeric_features = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
         categorical_features = X.select_dtypes(include=["object"]).columns.tolist()
 
-        numeric_transformer = StandardScaler()
-        categorical_transformer = OneHotEncoder(drop="first", handle_unknown="ignore")
+        # Fit preprocessors only on train data
+        numeric_transformer = StandardScaler().fit(X_train_raw[numeric_features])
+        categorical_transformer = OneHotEncoder(drop="first", handle_unknown="ignore").fit(
+            X_train_raw[categorical_features])
 
-        preprocessor = ColumnTransformer(
-            transformers=[
-                ("num", numeric_transformer, numeric_features),
-                ("cat", categorical_transformer, categorical_features)
-            ]
-        )
+        # Transform train data
+        X_train_num = numeric_transformer.transform(X_train_raw[numeric_features])
+        X_train_cat = categorical_transformer.transform(X_train_raw[categorical_features]).toarray()
+        import numpy as np
 
-        dtree_pipeline = Pipeline(steps=[
-            ("preprocessor", preprocessor),
-            ("classifier", DecisionTreeClassifier(random_state=42))
-        ])
+        X_train = np.hstack([X_train_num, X_train_cat])
 
-        # 5-Fold CV for Decision Tree
-        dt_cv_scores = cross_val_score(dtree_pipeline, X, y, cv=cv_folds, scoring="accuracy")
-        st.markdown(f"### 5-Fold Cross-Validation Accuracy")
-        st.write(f"Decision Tree CV Accuracy: {dt_cv_scores.mean():.3f} ± {dt_cv_scores.std():.3f}")
+        # Transform test data using train-fit transformers
+        X_test_num = numeric_transformer.transform(X_test_raw[numeric_features])
+        X_test_cat = categorical_transformer.transform(X_test_raw[categorical_features]).toarray()
+        X_test = np.hstack([X_test_num, X_test_cat])
 
-        # Fit on train and evaluate on test
-        dtree_pipeline.fit(X_train, y_train)
-        y_pred = dtree_pipeline.predict(X_test)
+        # Initialize and train Decision Tree
+        dtree = DecisionTreeClassifier(random_state=42)
+        dtree.fit(X_train, y_train)
 
+        # Predict on test
+        y_pred = dtree.predict(X_test)
+
+        # Calculate and display multiple metrics
         accuracy = accuracy_score(y_test, y_pred)
-        st.markdown(f"### Decision Tree Model Accuracy on Test Set: **{accuracy * 100:.4f}%**")
+        precision = precision_score(y_test, y_pred)
+        recall = recall_score(y_test, y_pred)
+        f1 = f1_score(y_test, y_pred)
 
-        st.markdown("### Classification Report")
-        report = classification_report(y_test, y_pred, output_dict=True)
-        report_df = pd.DataFrame(report).transpose()
-        st.dataframe(report_df.style.format("{:.2f}"))
+        st.markdown(f"### Decision Tree Model Metrics on Test Set")
+        st.write(f"Accuracy: {accuracy:.4f}")
+        st.write(f"Precision: {precision:.4f}")
+        st.write(f"Recall: {recall:.4f}")
+        st.write(f"F1-score: {f1:.4f}")
 
-        # Confusion matrix with Plotly heatmap (interactive)
+        # Confusion matrix with Plotly heatmap
         cm = confusion_matrix(y_test, y_pred)
         labels = ["Rejected", "Approved"]
-
         total = cm.sum()
         percentages = cm / total * 100
 
@@ -6130,95 +6142,32 @@ with tab3:
 
         st.plotly_chart(fig_cm, use_container_width=True)
 
-        # Interpretation text for confusion matrix
-        st.markdown("""
-        **Confusion Matrix Interpretation:**
-        - **True Positives (Top-Left):** Number of loans correctly predicted as Approved.
-        - **True Negatives (Bottom-Right):** Number of loans correctly predicted as Rejected.
-        - **False Positives (Top-Right):** Loans predicted as Approved but were Rejected (Type I error).
-        - **False Negatives (Bottom-Left):** Loans predicted as Rejected but were Approved (Type II error).
-
-        Ideally, we want to maximize true positives and true negatives while minimizing false positives and false negatives.
-        """)
-
-        # Accuracy bar chart (Plotly)
+        # Accuracy bar chart
         fig_acc = go.Figure(data=go.Bar(
-            x=["Accuracy"],
-            y=[accuracy],
-            marker_color='green',
-            text=[f"{accuracy * 100:.4f}%"],
+            x=["Accuracy", "Precision", "Recall", "F1"],
+            y=[accuracy, precision, recall, f1],
+            marker_color=['green', 'blue', 'orange', 'purple'],
+            text=[f"{v * 100:.2f}%" for v in [accuracy, precision, recall, f1]],
             textposition='auto'
         ))
 
         fig_acc.update_layout(
             yaxis=dict(range=[0, 1]),
-            title="Model Accuracy",
+            title="Model Metrics",
             template="plotly_white",
-            width=400,
+            width=600,
             height=400
         )
 
         st.plotly_chart(fig_acc, use_container_width=False)
 
-    # --- Explanation Subtab ---
-    with explanation_tab:
         st.markdown("""
-        # Logistic Regression and Decision Tree Model Explanation
+        **Important Notes:**
 
-        ## Logistic Regression Model
-
-        **Objective:**  
-        Predict loan approval status ("Approved" or "Rejected") based on applicant financial data.
-
-        **Data Processing Steps:**  
-        - Loaded raw dataset from CSV.  
-        - Created a new feature *Debt_Income* = loan_amount / income_annum.  
-        - Cleaned and encoded categorical variables with OneHotEncoder (drop first to avoid dummy variable trap).  
-        - Standardized numeric features using StandardScaler.  
-        - Split data into training (80%) and testing (20%) sets.
-
-        **Modeling:**  
-        - Logistic Regression was used due to its interpretability and suitability for binary classification.  
-        - Model trained on processed features to predict binary loan approval outcome.
-
-        **Evaluation Metrics:**  
-        - **Accuracy:** Proportion of correctly classified instances.  
-        - **Confusion Matrix:** Shows TP, TN, FP, FN counts to analyze error types.  
-        - **Classification Report:** Includes Precision, Recall, F1-score per class.
-
-        **Interpretation:**  
-        - High accuracy indicates good predictive power but always check confusion matrix for type of errors.  
-        - False positives (predicting approval incorrectly) may lead to risky loans.  
-        - False negatives (missing approvals) may reduce business opportunities.
-
-        **Possible Improvements:**  
-        - Try other models (Decision Trees, Random Forests) for possibly better performance.  
-        - Perform hyperparameter tuning, feature engineering, and balancing classes if needed.
-
-        ---
-
-        ## Decision Tree Model
-
-        **Overview:**  
-        The Decision Tree model is a non-linear classification algorithm that splits the data into branches based on feature values to make predictions.
-
-        **How it works in the code:**  
-        - Data preprocessing steps (scaling numeric features and encoding categoricals) are the same as for logistic regression, using `ColumnTransformer` with `StandardScaler` and `OneHotEncoder`.
-        - The preprocessed data is fed into `DecisionTreeClassifier` from scikit-learn.
-        - The tree splits the data by choosing features and threshold values that best separate classes (loan Approved vs Rejected).
-        - The model learns decision rules by recursively partitioning the feature space.
-        - Finally, predictions are made for the test data based on the learned decision tree.
-
-        **Advantages:**  
-        - Can capture complex, non-linear relationships.  
-        - Easy to interpret and visualize decision rules.  
-        - Handles both numeric and categorical data well (especially after preprocessing).
-
-        **Evaluation Metrics:**  
-        - Same as Logistic Regression: Accuracy, Confusion Matrix, Classification Report.
-
-        **Considerations:**  
-        - Prone to overfitting on training data; may require pruning or parameter tuning.  
-        - Performance depends on the depth and structure of the tree.
-
+        - Preprocessing (scaling, encoding) is done only on train data, then applied to test data to avoid data leakage.
+        - Stratified split maintains class proportions in train and test sets.
+        - Evaluate multiple metrics (accuracy, precision, recall, F1) for balanced insight.
+        - Check class distribution above — if very imbalanced, consider methods like SMOTE or class weights.
+        - Inspect features manually to ensure no direct leakage of target information.
         """)
+
