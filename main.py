@@ -5616,8 +5616,8 @@ with tab2:
 with tab3:
     st.subheader("🏦 Loan Approval Prediction")
 
-    dataset_tab, model_tab, explanation_tab = st.tabs([
-        "📂 Dataset", "📈 Model", "📝 Explanation"
+    dataset_tab, model_tab, explanation_tab, dtree_tab = st.tabs([
+        "📂 Dataset", "📈 Logistic Regression Model", "📝 Explanation", "🌳 Decision Tree Model"
     ])
 
     # --- Dataset Subtab ---
@@ -5771,3 +5771,112 @@ with tab3:
         - Perform hyperparameter tuning, feature engineering, and balancing classes if needed.
 
         """)
+    with dtree_tab:
+        url = "https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/loan_approval_dataset.csv"
+        df = pd.read_csv(url)
+        df.columns = df.columns.str.strip()
+        df["loan_status"] = df["loan_status"].str.strip()
+        df["Debt_Income"] = df["loan_amount"] / df["income_annum"]
+
+        y = df["loan_status"].map({"Approved": 1, "Rejected": 0})
+        df = df[~y.isna()]
+        y = y.dropna()
+
+        X = df.drop(columns=["loan_id", "loan_status"])
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42)
+
+        numeric_features = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
+        categorical_features = X.select_dtypes(include=["object"]).columns.tolist()
+
+        numeric_transformer = StandardScaler()
+        categorical_transformer = OneHotEncoder(drop="first", handle_unknown="ignore")
+
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ("num", numeric_transformer, numeric_features),
+                ("cat", categorical_transformer, categorical_features)
+            ]
+        )
+
+        from sklearn.tree import DecisionTreeClassifier
+
+        dtree_model = Pipeline(steps=[
+            ("preprocessor", preprocessor),
+            ("classifier", DecisionTreeClassifier(random_state=42))
+        ])
+
+        dtree_model.fit(X_train, y_train)
+        y_pred = dtree_model.predict(X_test)
+
+        accuracy = accuracy_score(y_test, y_pred)
+        st.markdown(f"### Decision Tree Model Accuracy: **{accuracy:.2f}**")
+
+        st.markdown("### Classification Report")
+        report = classification_report(y_test, y_pred, output_dict=True)
+        report_df = pd.DataFrame(report).transpose()
+        st.dataframe(report_df.style.format("{:.2f}"))
+
+        # Confusion matrix with Plotly heatmap (interactive)
+        cm = confusion_matrix(y_test, y_pred)
+        labels = ["Rejected", "Approved"]
+
+        total = cm.sum()
+        percentages = cm / total * 100
+
+        z_text = [[f"{count}<br>{percent:.1f}%" for count, percent in zip(row_counts, row_percs)]
+                  for row_counts, row_percs in zip(cm, percentages)]
+
+        fig_cm = go.Figure(data=go.Heatmap(
+            z=cm,
+            x=labels,
+            y=labels,
+            text=z_text,
+            texttemplate="%{text}",
+            colorscale='Blues',
+            hoverongaps=False,
+            colorbar=dict(title="Count")
+        ))
+
+        fig_cm.update_layout(
+            title="Confusion Matrix",
+            xaxis_title="Predicted Label",
+            yaxis_title="True Label",
+            yaxis_autorange='reversed',
+            width=600,
+            height=500,
+            template="plotly_white"
+        )
+
+        st.plotly_chart(fig_cm, use_container_width=True)
+
+        # Interpretation text for confusion matrix
+        st.markdown("""
+        **Confusion Matrix Interpretation:**
+        - **True Positives (Top-Left):** Number of loans correctly predicted as Approved.
+        - **True Negatives (Bottom-Right):** Number of loans correctly predicted as Rejected.
+        - **False Positives (Top-Right):** Loans predicted as Approved but were Rejected (Type I error).
+        - **False Negatives (Bottom-Left):** Loans predicted as Rejected but were Approved (Type II error).
+
+        Ideally, we want to maximize true positives and true negatives while minimizing false positives and false negatives.
+        """)
+
+        # Accuracy bar chart (Plotly)
+        fig_acc = go.Figure(data=go.Bar(
+            x=["Accuracy"],
+            y=[accuracy],
+            marker_color='green',
+            text=[f"{accuracy:.2f}"],
+            textposition='auto'
+        ))
+
+        fig_acc.update_layout(
+            yaxis=dict(range=[0, 1]),
+            title="Model Accuracy",
+            template="plotly_white",
+            width=400,
+            height=400
+        )
+
+        st.plotly_chart(fig_acc, use_container_width=False)
