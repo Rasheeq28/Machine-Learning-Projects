@@ -5805,6 +5805,15 @@ with tab3:
     url = "https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/loan_approval_dataset.csv"
     df = pd.read_csv(url)
     df.columns = df.columns.str.strip()  # Strip whitespace from column names
+    # Drop rows where target is NaN
+    df = df.dropna(subset=["loan_status"])
+
+    # Then recreate features and target
+    X = df.drop(columns=["loan_id", "loan_status"])
+    y = df["loan_status"].map({"Approved": 1, "Rejected": 0})
+
+    # Now split safely
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     # --- 2. Feature engineering ---
     df["Debt_Income"] = df["loan_amount"] / df["income_annum"]
