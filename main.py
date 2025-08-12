@@ -5769,8 +5769,33 @@ with tab3:
         **Possible Improvements:**  
         - Try other models (Decision Trees, Random Forests) for possibly better performance.  
         - Perform hyperparameter tuning, feature engineering, and balancing classes if needed.
+        
 
-        """)
+        ## Decision Tree Model
+
+    **Overview:**  
+    The Decision Tree model is a non-linear classification algorithm that splits the data into branches based on feature values to make predictions.
+
+    **How it works in the code:**  
+    - Data preprocessing steps (scaling numeric features and encoding categoricals) are the same as for logistic regression, using `ColumnTransformer` with `StandardScaler` and `OneHotEncoder`.
+    - The preprocessed data is fed into `DecisionTreeClassifier` from scikit-learn.
+    - The tree splits the data by choosing features and threshold values that best separate classes (loan Approved vs Rejected).
+    - The model learns decision rules by recursively partitioning the feature space.
+    - Finally, predictions are made for the test data based on the learned decision tree.
+
+    **Advantages:**  
+    - Can capture complex, non-linear relationships.  
+    - Easy to interpret and visualize decision rules.  
+    - Handles both numeric and categorical data well (especially after preprocessing).
+
+    **Evaluation Metrics:**  
+    - Same as Logistic Regression: Accuracy, Confusion Matrix, Classification Report.
+
+    **Considerations:**  
+    - Prone to overfitting on training data; may require pruning or parameter tuning.  
+    - Performance depends on the depth and structure of the tree.
+
+    """)
     with dtree_tab:
         url = "https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/loan_approval_dataset.csv"
         df = pd.read_csv(url)
