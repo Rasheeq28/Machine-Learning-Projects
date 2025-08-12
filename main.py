@@ -5286,6 +5286,7 @@ from sklearn.metrics import precision_score, recall_score, f1_score
 from collections import Counter
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from imblearn.over_sampling import SMOTE
+from imblearn.pipeline import Pipeline as ImbPipeline
 
 
 st.set_page_config(page_title="Machine Learning projects", layout="wide")
