@@ -6185,10 +6185,12 @@ with tab3:
 
         X = df.drop(columns=["loan_id", "loan_status"])
 
+        # Split train/test once
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.2, random_state=42, stratify=y
         )
 
+        # Feature types
         numeric_features = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
         categorical_features = X.select_dtypes(include=["object"]).columns.tolist()
 
@@ -6198,35 +6200,46 @@ with tab3:
         preprocessor = ColumnTransformer(
             transformers=[
                 ("num", numeric_transformer, numeric_features),
-                ("cat", categorical_transformer, categorical_features)
+                ("cat", categorical_transformer, categorical_features),
             ]
         )
 
-        dtree_pipeline = ImbPipeline(steps=[
-            ("preprocessor", preprocessor),
-            ("smote", SMOTE(random_state=42, k_neighbors=1)),  # k_neighbors=1 to avoid errors
-            ("classifier", DecisionTreeClassifier(random_state=42))
-        ])
+        # Define pipeline with preprocessor -> SMOTE -> DecisionTree
+        smote = SMOTE(random_state=42)
+        dtree_pipeline = ImbPipeline(
+            steps=[
+                ("preprocessor", preprocessor),
+                ("smote", smote),
+                ("classifier", DecisionTreeClassifier(random_state=42)),
+            ]
+        )
 
-        # Manual stratified CV to avoid SMOTE errors inside cross_val_score
-        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-
+        # Manual Stratified K-Fold CV on TRAIN set to avoid errors and allow SMOTE
+        cv_folds = 5
+        skf = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=42)
         cv_accuracies = []
-        for train_idx, val_idx in skf.split(X_train, y_train):
-            X_tr, X_val = X_train.iloc[train_idx], X_train.iloc[val_idx]
-            y_tr, y_val = y_train.iloc[train_idx], y_train.iloc[val_idx]
 
-            dtree_pipeline.fit(X_tr, y_tr)
-            y_val_pred = dtree_pipeline.predict(X_val)
+        for train_idx, val_idx in skf.split(X_train, y_train):
+            # Convert to numpy arrays to avoid imblearn pipeline errors
+            X_tr_np = X_train.iloc[train_idx].to_numpy()
+            X_val_np = X_train.iloc[val_idx].to_numpy()
+            y_tr = y_train.iloc[train_idx].reset_index(drop=True)
+            y_val = y_train.iloc[val_idx].reset_index(drop=True)
+
+            dtree_pipeline.fit(X_tr_np, y_tr)
+            y_val_pred = dtree_pipeline.predict(X_val_np)
+
             acc = accuracy_score(y_val, y_val_pred)
             cv_accuracies.append(acc)
 
         st.markdown(f"### 5-Fold Cross-Validation Accuracy (with SMOTE)")
         st.write(f"Decision Tree CV Accuracy: {np.mean(cv_accuracies):.3f} ± {np.std(cv_accuracies):.3f}")
 
-        # Fit on full train data and evaluate on test data
-        dtree_pipeline.fit(X_train, y_train)
-        y_pred = dtree_pipeline.predict(X_test)
+        # Fit pipeline on full TRAIN data (convert X_train to numpy)
+        dtree_pipeline.fit(X_train.to_numpy(), y_train)
+
+        # Predict on TEST data (convert X_test to numpy)
+        y_pred = dtree_pipeline.predict(X_test.to_numpy())
 
         accuracy = accuracy_score(y_test, y_pred)
         st.markdown(f"### Decision Tree Model Accuracy on Test Set: **{accuracy * 100:.4f}%**")
@@ -6236,58 +6249,73 @@ with tab3:
         report_df = pd.DataFrame(report).transpose()
         st.dataframe(report_df.style.format("{:.2f}"))
 
-        # Confusion matrix heatmap
+        # Confusion matrix with Plotly heatmap (interactive)
         cm = confusion_matrix(y_test, y_pred)
         labels = ["Rejected", "Approved"]
+
         total = cm.sum()
         percentages = cm / total * 100
-        z_text = [[f"{count}<br>{percent:.1f}%" for count, percent in zip(row_counts, row_percs)]
-                  for row_counts, row_percs in zip(cm, percentages)]
 
-        fig_cm = go.Figure(data=go.Heatmap(
-            z=cm,
-            x=labels,
-            y=labels,
-            text=z_text,
-            texttemplate="%{text}",
-            colorscale='Blues',
-            hoverongaps=False,
-            colorbar=dict(title="Count")
-        ))
+        z_text = [
+            [f"{count}<br>{percent:.1f}%" for count, percent in zip(row_counts, row_percs)]
+            for row_counts, row_percs in zip(cm, percentages)
+        ]
+
+        fig_cm = go.Figure(
+            data=go.Heatmap(
+                z=cm,
+                x=labels,
+                y=labels,
+                text=z_text,
+                texttemplate="%{text}",
+                colorscale="Blues",
+                hoverongaps=False,
+                colorbar=dict(title="Count"),
+            )
+        )
+
         fig_cm.update_layout(
             title="Confusion Matrix",
             xaxis_title="Predicted Label",
             yaxis_title="True Label",
-            yaxis_autorange='reversed',
+            yaxis_autorange="reversed",
             width=600,
             height=500,
-            template="plotly_white"
+            template="plotly_white",
         )
+
         st.plotly_chart(fig_cm, use_container_width=True)
 
-        st.markdown("""
-        **Confusion Matrix Interpretation:**
-        - **True Positives (Top-Left):** Number of loans correctly predicted as Approved.
-        - **True Negatives (Bottom-Right):** Number of loans correctly predicted as Rejected.
-        - **False Positives (Top-Right):** Loans predicted as Approved but were Rejected (Type I error).
-        - **False Negatives (Bottom-Left):** Loans predicted as Rejected but were Approved (Type II error).
-    
-        Ideally, we want to maximize true positives and true negatives while minimizing false positives and false negatives.
-        """)
+        # Interpretation text for confusion matrix
+        st.markdown(
+            """
+            **Confusion Matrix Interpretation:**
+            - **True Positives (Top-Left):** Number of loans correctly predicted as Approved.
+            - **True Negatives (Bottom-Right):** Number of loans correctly predicted as Rejected.
+            - **False Positives (Top-Right):** Loans predicted as Approved but were Rejected (Type I error).
+            - **False Negatives (Bottom-Left):** Loans predicted as Rejected but were Approved (Type II error).
 
-        # Accuracy bar chart
-        fig_acc = go.Figure(data=go.Bar(
-            x=["Accuracy"],
-            y=[accuracy],
-            marker_color='green',
-            text=[f"{accuracy * 100:.4f}%"],
-            textposition='auto'
-        ))
+            Ideally, we want to maximize true positives and true negatives while minimizing false positives and false negatives.
+            """
+        )
+
+        # Accuracy bar chart (Plotly)
+        fig_acc = go.Figure(
+            data=go.Bar(
+                x=["Accuracy"],
+                y=[accuracy],
+                marker_color="green",
+                text=[f"{accuracy * 100:.4f}%"],
+                textposition="auto",
+            )
+        )
+
         fig_acc.update_layout(
             yaxis=dict(range=[0, 1]),
             title="Model Accuracy",
             template="plotly_white",
             width=400,
-            height=400
+            height=400,
         )
+
         st.plotly_chart(fig_acc, use_container_width=False)
