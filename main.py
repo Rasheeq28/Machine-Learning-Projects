@@ -6182,6 +6182,7 @@ with tab3:
         y = df["loan_status"].map({"Approved": 1, "Rejected": 0})
         df = df[~y.isna()]
         y = y.dropna()
+
         X = df.drop(columns=["loan_id", "loan_status"])
 
         X_train, X_test, y_train, y_test = train_test_split(
@@ -6201,22 +6202,30 @@ with tab3:
             ]
         )
 
-        # Build imblearn pipeline with preprocessing, SMOTE, and classifier
         dtree_pipeline = ImbPipeline(steps=[
             ("preprocessor", preprocessor),
-            ("smote", SMOTE(random_state=42)),
+            ("smote", SMOTE(random_state=42, k_neighbors=1)),  # k_neighbors=1 to avoid errors
             ("classifier", DecisionTreeClassifier(random_state=42))
         ])
 
-        cv_folds = 5
-        dt_cv_scores = cross_val_score(dtree_pipeline, X_train, y_train, cv=cv_folds, scoring="accuracy")
-        st.markdown(f"### 5-Fold Cross-Validation Accuracy (Train Set Only)")
-        st.write(f"Decision Tree CV Accuracy: {dt_cv_scores.mean():.3f} ± {dt_cv_scores.std():.3f}")
+        # Manual stratified CV to avoid SMOTE errors inside cross_val_score
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
-        # Fit on training data
+        cv_accuracies = []
+        for train_idx, val_idx in skf.split(X_train, y_train):
+            X_tr, X_val = X_train.iloc[train_idx], X_train.iloc[val_idx]
+            y_tr, y_val = y_train.iloc[train_idx], y_train.iloc[val_idx]
+
+            dtree_pipeline.fit(X_tr, y_tr)
+            y_val_pred = dtree_pipeline.predict(X_val)
+            acc = accuracy_score(y_val, y_val_pred)
+            cv_accuracies.append(acc)
+
+        st.markdown(f"### 5-Fold Cross-Validation Accuracy (with SMOTE)")
+        st.write(f"Decision Tree CV Accuracy: {np.mean(cv_accuracies):.3f} ± {np.std(cv_accuracies):.3f}")
+
+        # Fit on full train data and evaluate on test data
         dtree_pipeline.fit(X_train, y_train)
-
-        # Predict on test data (no SMOTE applied here)
         y_pred = dtree_pipeline.predict(X_test)
 
         accuracy = accuracy_score(y_test, y_pred)
