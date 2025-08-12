@@ -5268,7 +5268,7 @@ from sklearn.cluster import DBSCAN, KMeans
 import plotly.express as px
 import warnings
 from sklearn.impute import SimpleImputer
-from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV, RepeatedKFold
+from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV, RepeatedKFold, StratifiedKFold
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
