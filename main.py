@@ -6048,7 +6048,7 @@ with tab3:
         st.plotly_chart(fig_acc, use_container_width=False)
 
     # --- Decision Tree Model Subtab ---
-    with dtree_tab:
+    # with dtree_tab:
         # url = "https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/loan_approval_dataset.csv"
         # df = pd.read_csv(url)
         # df.columns = df.columns.str.strip()
@@ -6170,6 +6170,8 @@ with tab3:
         # - Check class distribution above — if very imbalanced, consider methods like SMOTE or class weights.
         # - Inspect features manually to ensure no direct leakage of target information.
         # """)
+
+    with dtree_tab:
         url = "https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/loan_approval_dataset.csv"
         df = pd.read_csv(url)
         df.columns = df.columns.str.strip()
@@ -6179,72 +6181,56 @@ with tab3:
         y = df["loan_status"].map({"Approved": 1, "Rejected": 0})
         df = df[~y.isna()]
         y = y.dropna()
-
         X = df.drop(columns=["loan_id", "loan_status"])
 
-        # Check class balance before split
-        st.write("### Original Class Distribution")
-        st.write(Counter(y))
-
-        # Stratified split
-        strat_split = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
-        for train_idx, test_idx in strat_split.split(X, y):
-            X_train_raw, X_test_raw = X.iloc[train_idx], X.iloc[test_idx]
-            y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42, stratify=y
+        )
 
         numeric_features = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
         categorical_features = X.select_dtypes(include=["object"]).columns.tolist()
 
-        # Fit transformers only on train data
-        numeric_transformer = StandardScaler().fit(X_train_raw[numeric_features])
-        categorical_transformer = OneHotEncoder(drop="first", handle_unknown="ignore").fit(
-            X_train_raw[categorical_features])
+        numeric_transformer = StandardScaler()
+        categorical_transformer = OneHotEncoder(drop="first", handle_unknown="ignore")
 
-        # Transform train data
-        X_train_num = numeric_transformer.transform(X_train_raw[numeric_features])
-        X_train_cat = categorical_transformer.transform(X_train_raw[categorical_features]).toarray()
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ("num", numeric_transformer, numeric_features),
+                ("cat", categorical_transformer, categorical_features)
+            ]
+        )
 
-        import numpy as np
+        # Build imblearn pipeline with preprocessing, SMOTE, and classifier
+        dtree_pipeline = ImbPipeline(steps=[
+            ("preprocessor", preprocessor),
+            ("smote", SMOTE(random_state=42)),
+            ("classifier", DecisionTreeClassifier(random_state=42))
+        ])
 
-        X_train = np.hstack([X_train_num, X_train_cat])
+        cv_folds = 5
+        dt_cv_scores = cross_val_score(dtree_pipeline, X_train, y_train, cv=cv_folds, scoring="accuracy")
+        st.markdown(f"### 5-Fold Cross-Validation Accuracy (Train Set Only)")
+        st.write(f"Decision Tree CV Accuracy: {dt_cv_scores.mean():.3f} ± {dt_cv_scores.std():.3f}")
 
-        # Apply SMOTE to balance classes on training set
-        smote = SMOTE(random_state=42)
-        X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+        # Fit on training data
+        dtree_pipeline.fit(X_train, y_train)
 
-        st.write("### Class Distribution After SMOTE")
-        st.write(Counter(y_train_resampled))
+        # Predict on test data (no SMOTE applied here)
+        y_pred = dtree_pipeline.predict(X_test)
 
-        # Transform test data
-        X_test_num = numeric_transformer.transform(X_test_raw[numeric_features])
-        X_test_cat = categorical_transformer.transform(X_test_raw[categorical_features]).toarray()
-        X_test = np.hstack([X_test_num, X_test_cat])
-
-        # Train Decision Tree on resampled data
-        dtree = DecisionTreeClassifier(random_state=42)
-        dtree.fit(X_train_resampled, y_train_resampled)
-
-        # Predict on test
-        y_pred = dtree.predict(X_test)
-
-        # Calculate metrics
         accuracy = accuracy_score(y_test, y_pred)
-        precision = precision_score(y_test, y_pred)
-        recall = recall_score(y_test, y_pred)
-        f1 = f1_score(y_test, y_pred)
+        st.markdown(f"### Decision Tree Model Accuracy on Test Set: **{accuracy * 100:.4f}%**")
 
-        st.markdown(f"### Decision Tree Model Metrics on Test Set")
-        st.write(f"Accuracy: {accuracy:.4f}")
-        st.write(f"Precision: {precision:.4f}")
-        st.write(f"Recall: {recall:.4f}")
-        st.write(f"F1-score: {f1:.4f}")
+        st.markdown("### Classification Report")
+        report = classification_report(y_test, y_pred, output_dict=True)
+        report_df = pd.DataFrame(report).transpose()
+        st.dataframe(report_df.style.format("{:.2f}"))
 
-        # Confusion matrix with Plotly heatmap
+        # Confusion matrix heatmap
         cm = confusion_matrix(y_test, y_pred)
         labels = ["Rejected", "Approved"]
         total = cm.sum()
         percentages = cm / total * 100
-
         z_text = [[f"{count}<br>{percent:.1f}%" for count, percent in zip(row_counts, row_percs)]
                   for row_counts, row_percs in zip(cm, percentages)]
 
@@ -6258,7 +6244,6 @@ with tab3:
             hoverongaps=False,
             colorbar=dict(title="Count")
         ))
-
         fig_cm.update_layout(
             title="Confusion Matrix",
             xaxis_title="Predicted Label",
@@ -6268,32 +6253,31 @@ with tab3:
             height=500,
             template="plotly_white"
         )
-
         st.plotly_chart(fig_cm, use_container_width=True)
 
-        # Metrics bar chart
-        fig_acc = go.Figure(data=go.Bar(
-            x=["Accuracy", "Precision", "Recall", "F1"],
-            y=[accuracy, precision, recall, f1],
-            marker_color=['green', 'blue', 'orange', 'purple'],
-            text=[f"{v * 100:.2f}%" for v in [accuracy, precision, recall, f1]],
-            textposition='auto'
-        ))
-
-        fig_acc.update_layout(
-            yaxis=dict(range=[0, 1]),
-            title="Model Metrics",
-            template="plotly_white",
-            width=600,
-            height=400
-        )
-
-        st.plotly_chart(fig_acc, use_container_width=False)
-
         st.markdown("""
-        **Notes:**
-        - SMOTE applied **only** on training data to balance classes.
-        - Test data remains untouched to provide realistic evaluation.
-        - Always inspect class distributions before and after applying SMOTE.
+        **Confusion Matrix Interpretation:**
+        - **True Positives (Top-Left):** Number of loans correctly predicted as Approved.
+        - **True Negatives (Bottom-Right):** Number of loans correctly predicted as Rejected.
+        - **False Positives (Top-Right):** Loans predicted as Approved but were Rejected (Type I error).
+        - **False Negatives (Bottom-Left):** Loans predicted as Rejected but were Approved (Type II error).
+    
+        Ideally, we want to maximize true positives and true negatives while minimizing false positives and false negatives.
         """)
 
+        # Accuracy bar chart
+        fig_acc = go.Figure(data=go.Bar(
+            x=["Accuracy"],
+            y=[accuracy],
+            marker_color='green',
+            text=[f"{accuracy * 100:.4f}%"],
+            textposition='auto'
+        ))
+        fig_acc.update_layout(
+            yaxis=dict(range=[0, 1]),
+            title="Model Accuracy",
+            template="plotly_white",
+            width=400,
+            height=400
+        )
+        st.plotly_chart(fig_acc, use_container_width=False)
