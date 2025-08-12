@@ -5723,7 +5723,7 @@ with tab3:
             x=["Accuracy"],
             y=[accuracy],
             marker_color='green',
-            text=[f"{accuracy:.2f}"],
+            text=[f"{accuracy * 100:.4f}"],
             textposition='auto'
         ))
 
@@ -5834,7 +5834,7 @@ with tab3:
             x=["Accuracy"],
             y=[accuracy],
             marker_color='green',
-            text=[f"{accuracy:.2f}"],
+            text=[f"{accuracy * 100:.4f}"],
             textposition='auto'
         ))
 
