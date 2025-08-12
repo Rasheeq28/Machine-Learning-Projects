@@ -5617,78 +5617,75 @@ with tab2:
 with tab3:
     st.subheader("🏦 Loan Approval Prediction")
 
-    # Load dataset
-    url = "https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/loan_approval_dataset.csv"
-    df = pd.read_csv(url)
-    df.columns = df.columns.str.strip()
+    # Create subtabs inside tab3
+    dataset_tab, model_tab = st.tabs(["📂 Dataset", "📈 Model"])
 
-    # Clean target column and create Debt_Income feature
-    df["loan_status"] = df["loan_status"].str.strip()
-    df["Debt_Income"] = df["loan_amount"] / df["income_annum"]
+    with dataset_tab:
+        st.write("### Raw Dataset Preview")
+        url = "https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/loan_approval_dataset.csv"
+        df_raw = pd.read_csv(url)
+        st.dataframe(df_raw, use_container_width=True)
 
-    # Map target to binary and drop rows with unknown labels
-    y = df["loan_status"].map({"Approved": 1, "Rejected": 0})
-    df = df[~y.isna()]
-    y = y.dropna()
+    with model_tab:
+        # Load and preprocess dataset
+        url = "https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/loan_approval_dataset.csv"
+        df = pd.read_csv(url)
+        df.columns = df.columns.str.strip()
 
-    # Features: drop loan_id and loan_status
-    X = df.drop(columns=["loan_id", "loan_status"])
+        df["loan_status"] = df["loan_status"].str.strip()
+        df["Debt_Income"] = df["loan_amount"] / df["income_annum"]
 
-    # Train/test split
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42)
+        y = df["loan_status"].map({"Approved": 1, "Rejected": 0})
+        df = df[~y.isna()]
+        y = y.dropna()
 
-    # Identify numeric and categorical columns
-    numeric_features = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
-    categorical_features = X.select_dtypes(include=["object"]).columns.tolist()
+        X = df.drop(columns=["loan_id", "loan_status"])
 
-    # Preprocessing pipelines
-    numeric_transformer = StandardScaler()
-    categorical_transformer = OneHotEncoder(drop="first", handle_unknown="ignore")
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42)
 
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ("num", numeric_transformer, numeric_features),
-            ("cat", categorical_transformer, categorical_features)
-        ]
-    )
+        numeric_features = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
+        categorical_features = X.select_dtypes(include=["object"]).columns.tolist()
 
-    # Pipeline with Logistic Regression
-    model = Pipeline(steps=[
-        ("preprocessor", preprocessor),
-        ("classifier", LogisticRegression(max_iter=2000, random_state=42))
-    ])
+        numeric_transformer = StandardScaler()
+        categorical_transformer = OneHotEncoder(drop="first", handle_unknown="ignore")
 
-    # Train model
-    model.fit(X_train, y_train)
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ("num", numeric_transformer, numeric_features),
+                ("cat", categorical_transformer, categorical_features)
+            ]
+        )
 
-    # Predict on test
-    y_pred = model.predict(X_test)
+        model = Pipeline(steps=[
+            ("preprocessor", preprocessor),
+            ("classifier", LogisticRegression(max_iter=2000, random_state=42))
+        ])
 
-    # Display metrics
-    accuracy = accuracy_score(y_test, y_pred)
-    st.write(f"**Accuracy:** {accuracy:.2f}")
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
 
-    st.write("**Classification Report:**")
-    report = classification_report(y_test, y_pred, output_dict=True)
-    report_df = pd.DataFrame(report).transpose()
-    st.dataframe(report_df)
+        accuracy = accuracy_score(y_test, y_pred)
+        st.write(f"**Accuracy:** {accuracy:.2f}")
 
-    # Confusion matrix plot
-    cm = confusion_matrix(y_test, y_pred)
-    fig, ax = plt.subplots(figsize=(6, 4))
-    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
-                xticklabels=["Rejected", "Approved"],
-                yticklabels=["Rejected", "Approved"], ax=ax)
-    ax.set_xlabel("Predicted")
-    ax.set_ylabel("Actual")
-    ax.set_title("Confusion Matrix")
-    st.pyplot(fig)
+        st.write("**Classification Report:**")
+        report = classification_report(y_test, y_pred, output_dict=True)
+        report_df = pd.DataFrame(report).transpose()
+        st.dataframe(report_df)
 
-    # Accuracy bar chart
-    fig2, ax2 = plt.subplots(figsize=(4, 4))
-    ax2.bar(["Accuracy"], [accuracy], color="green")
-    ax2.set_ylim(0, 1)
-    ax2.set_ylabel("Score")
-    ax2.set_title("Model Accuracy")
-    st.pyplot(fig2)
+        cm = confusion_matrix(y_test, y_pred)
+        fig, ax = plt.subplots(figsize=(6, 4))
+        sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
+                    xticklabels=["Rejected", "Approved"],
+                    yticklabels=["Rejected", "Approved"], ax=ax)
+        ax.set_xlabel("Predicted")
+        ax.set_ylabel("Actual")
+        ax.set_title("Confusion Matrix")
+        st.pyplot(fig)
+
+        fig2, ax2 = plt.subplots(figsize=(4, 4))
+        ax2.bar(["Accuracy"], [accuracy], color="green")
+        ax2.set_ylim(0, 1)
+        ax2.set_ylabel("Score")
+        ax2.set_title("Model Accuracy")
+        st.pyplot(fig2)
