@@ -5613,25 +5613,26 @@ with tab2:
         st.markdown("---")
         st.write("🔄 **Note:** Features were standardized to give equal importance before clustering.")
 
-
 with tab3:
     st.subheader("🏦 Loan Approval Prediction")
 
-    # Create subtabs inside tab3
-    dataset_tab, model_tab = st.tabs(["📂 Dataset", "📈 Model"])
+    dataset_tab, model_tab, explanation_tab = st.tabs([
+        "📂 Dataset", "📈 Model", "📝 Explanation"
+    ])
 
+    # --- Dataset Subtab ---
     with dataset_tab:
         st.write("### Raw Dataset Preview")
         url = "https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/loan_approval_dataset.csv"
         df_raw = pd.read_csv(url)
         st.dataframe(df_raw, use_container_width=True)
 
+    # --- Model Subtab ---
     with model_tab:
         # Load and preprocess dataset
         url = "https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/loan_approval_dataset.csv"
         df = pd.read_csv(url)
         df.columns = df.columns.str.strip()
-
         df["loan_status"] = df["loan_status"].str.strip()
         df["Debt_Income"] = df["loan_amount"] / df["income_annum"]
 
@@ -5666,26 +5667,103 @@ with tab3:
         y_pred = model.predict(X_test)
 
         accuracy = accuracy_score(y_test, y_pred)
-        st.write(f"**Accuracy:** {accuracy:.2f}")
+        st.markdown(f"### Model Accuracy: **{accuracy:.2f}**")
 
-        st.write("**Classification Report:**")
+        st.markdown("### Classification Report")
         report = classification_report(y_test, y_pred, output_dict=True)
         report_df = pd.DataFrame(report).transpose()
-        st.dataframe(report_df)
+        st.dataframe(report_df.style.format("{:.2f}"))
 
+        # Confusion matrix with Plotly heatmap (interactive)
         cm = confusion_matrix(y_test, y_pred)
-        fig, ax = plt.subplots(figsize=(6, 4))
-        sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
-                    xticklabels=["Rejected", "Approved"],
-                    yticklabels=["Rejected", "Approved"], ax=ax)
-        ax.set_xlabel("Predicted")
-        ax.set_ylabel("Actual")
-        ax.set_title("Confusion Matrix")
-        st.pyplot(fig)
+        labels = ["Rejected", "Approved"]
 
-        fig2, ax2 = plt.subplots(figsize=(4, 4))
-        ax2.bar(["Accuracy"], [accuracy], color="green")
-        ax2.set_ylim(0, 1)
-        ax2.set_ylabel("Score")
-        ax2.set_title("Model Accuracy")
-        st.pyplot(fig2)
+        z_text = [[str(y) for y in x] for x in cm]
+
+        fig_cm = go.Figure(data=go.Heatmap(
+            z=cm,
+            x=labels,
+            y=labels,
+            text=z_text,
+            texttemplate="%{text}",
+            colorscale='Blues',
+            hoverongaps=False,
+            colorbar=dict(title="Count")
+        ))
+
+        fig_cm.update_layout(
+            title="Confusion Matrix",
+            xaxis_title="Predicted Label",
+            yaxis_title="True Label",
+            yaxis_autorange='reversed',
+            width=600,
+            height=500,
+            template="plotly_white"
+        )
+
+        st.plotly_chart(fig_cm, use_container_width=True)
+
+        # Interpretation text for confusion matrix
+        st.markdown("""
+        **Confusion Matrix Interpretation:**
+        - **True Positives (Top-Left):** Number of loans correctly predicted as Approved.
+        - **True Negatives (Bottom-Right):** Number of loans correctly predicted as Rejected.
+        - **False Positives (Top-Right):** Loans predicted as Approved but were Rejected (Type I error).
+        - **False Negatives (Bottom-Left):** Loans predicted as Rejected but were Approved (Type II error).
+
+        Ideally, we want to maximize true positives and true negatives while minimizing false positives and false negatives.
+        """)
+
+        # Accuracy bar chart (Plotly)
+        fig_acc = go.Figure(data=go.Bar(
+            x=["Accuracy"],
+            y=[accuracy],
+            marker_color='green',
+            text=[f"{accuracy:.2f}"],
+            textposition='auto'
+        ))
+
+        fig_acc.update_layout(
+            yaxis=dict(range=[0, 1]),
+            title="Model Accuracy",
+            template="plotly_white",
+            width=400,
+            height=400
+        )
+
+        st.plotly_chart(fig_acc, use_container_width=False)
+
+    # --- Explanation Subtab ---
+    with explanation_tab:
+        st.markdown("""
+        # Logistic Regression Model Explanation
+
+        **Objective:**  
+        Predict loan approval status ("Approved" or "Rejected") based on applicant financial data.
+
+        **Data Processing Steps:**  
+        - Loaded raw dataset from CSV.  
+        - Created a new feature *Debt_Income* = loan_amount / income_annum.  
+        - Cleaned and encoded categorical variables with OneHotEncoder (drop first to avoid dummy variable trap).  
+        - Standardized numeric features using StandardScaler.  
+        - Split data into training (80%) and testing (20%) sets.
+
+        **Modeling:**  
+        - Logistic Regression was used due to its interpretability and suitability for binary classification.  
+        - Model trained on processed features to predict binary loan approval outcome.
+
+        **Evaluation Metrics:**  
+        - **Accuracy:** Proportion of correctly classified instances.  
+        - **Confusion Matrix:** Shows TP, TN, FP, FN counts to analyze error types.  
+        - **Classification Report:** Includes Precision, Recall, F1-score per class.
+
+        **Interpretation:**  
+        - High accuracy indicates good predictive power but always check confusion matrix for type of errors.  
+        - False positives (predicting approval incorrectly) may lead to risky loans.  
+        - False negatives (missing approvals) may reduce business opportunities.
+
+        **Possible Improvements:**  
+        - Try other models (Decision Trees, Random Forests) for possibly better performance.  
+        - Perform hyperparameter tuning, feature engineering, and balancing classes if needed.
+
+        """)
