@@ -6185,7 +6185,7 @@ with tab3:
 
         X = df.drop(columns=["loan_id", "loan_status"])
 
-        # Split train/test once
+        # Train/test split with stratify
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.2, random_state=42, stratify=y
         )
@@ -6204,45 +6204,45 @@ with tab3:
             ]
         )
 
-        # Define pipeline with preprocessor -> SMOTE -> DecisionTree
+        # SMOTE and Logistic Regression pipeline
         smote = SMOTE(random_state=42)
-        dtree_pipeline = ImbPipeline(
+        lr_pipeline = ImbPipeline(
             steps=[
                 ("preprocessor", preprocessor),
                 ("smote", smote),
-                ("classifier", DecisionTreeClassifier(random_state=42)),
+                ("classifier", LogisticRegression(max_iter=2000, random_state=42)),
             ]
         )
 
-        # Manual Stratified K-Fold CV on TRAIN set to avoid errors and allow SMOTE
+        # Manual stratified 5-fold CV on TRAIN set
         cv_folds = 5
         skf = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=42)
         cv_accuracies = []
 
         for train_idx, val_idx in skf.split(X_train, y_train):
-            # Convert to numpy arrays to avoid imblearn pipeline errors
+            # Convert to numpy for imblearn compatibility
             X_tr_np = X_train.iloc[train_idx].to_numpy()
             X_val_np = X_train.iloc[val_idx].to_numpy()
             y_tr = y_train.iloc[train_idx].reset_index(drop=True)
             y_val = y_train.iloc[val_idx].reset_index(drop=True)
 
-            dtree_pipeline.fit(X_tr_np, y_tr)
-            y_val_pred = dtree_pipeline.predict(X_val_np)
+            lr_pipeline.fit(X_tr_np, y_tr)
+            y_val_pred = lr_pipeline.predict(X_val_np)
 
             acc = accuracy_score(y_val, y_val_pred)
             cv_accuracies.append(acc)
 
         st.markdown(f"### 5-Fold Cross-Validation Accuracy (with SMOTE)")
-        st.write(f"Decision Tree CV Accuracy: {np.mean(cv_accuracies):.3f} ± {np.std(cv_accuracies):.3f}")
+        st.write(f"Logistic Regression CV Accuracy: {np.mean(cv_accuracies):.3f} ± {np.std(cv_accuracies):.3f}")
 
-        # Fit pipeline on full TRAIN data (convert X_train to numpy)
-        dtree_pipeline.fit(X_train.to_numpy(), y_train)
+        # Fit on full TRAIN set
+        lr_pipeline.fit(X_train.to_numpy(), y_train)
 
-        # Predict on TEST data (convert X_test to numpy)
-        y_pred = dtree_pipeline.predict(X_test.to_numpy())
+        # Predict on TEST set
+        y_pred = lr_pipeline.predict(X_test.to_numpy())
 
         accuracy = accuracy_score(y_test, y_pred)
-        st.markdown(f"### Decision Tree Model Accuracy on Test Set: **{accuracy * 100:.4f}%**")
+        st.markdown(f"### Model Accuracy on Test Set: **{accuracy * 100:.4f}%**")
 
         st.markdown("### Classification Report")
         report = classification_report(y_test, y_pred, output_dict=True)
