@@ -5285,7 +5285,7 @@ from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.metrics import precision_score, recall_score, f1_score
 from collections import Counter
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-
+from imblearn.over_sampling import SMOTE
 
 
 st.set_page_config(page_title="Machine Learning projects", layout="wide")
@@ -6049,6 +6049,127 @@ with tab3:
 
     # --- Decision Tree Model Subtab ---
     with dtree_tab:
+        # url = "https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/loan_approval_dataset.csv"
+        # df = pd.read_csv(url)
+        # df.columns = df.columns.str.strip()
+        # df["loan_status"] = df["loan_status"].str.strip()
+        # df["Debt_Income"] = df["loan_amount"] / df["income_annum"]
+        #
+        # y = df["loan_status"].map({"Approved": 1, "Rejected": 0})
+        # df = df[~y.isna()]
+        # y = y.dropna()
+        #
+        # X = df.drop(columns=["loan_id", "loan_status"])
+        #
+        # # Check class balance
+        # st.write("### Class distribution")
+        # st.write(Counter(y))
+        #
+        # # Use stratified split to maintain class proportions in train/test
+        # strat_split = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+        # for train_idx, test_idx in strat_split.split(X, y):
+        #     X_train_raw, X_test_raw = X.iloc[train_idx], X.iloc[test_idx]
+        #     y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+        #
+        # numeric_features = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
+        # categorical_features = X.select_dtypes(include=["object"]).columns.tolist()
+        #
+        # # Fit preprocessors only on train data
+        # numeric_transformer = StandardScaler().fit(X_train_raw[numeric_features])
+        # categorical_transformer = OneHotEncoder(drop="first", handle_unknown="ignore").fit(
+        #     X_train_raw[categorical_features])
+        #
+        # # Transform train data
+        # X_train_num = numeric_transformer.transform(X_train_raw[numeric_features])
+        # X_train_cat = categorical_transformer.transform(X_train_raw[categorical_features]).toarray()
+        # import numpy as np
+        #
+        # X_train = np.hstack([X_train_num, X_train_cat])
+        #
+        # # Transform test data using train-fit transformers
+        # X_test_num = numeric_transformer.transform(X_test_raw[numeric_features])
+        # X_test_cat = categorical_transformer.transform(X_test_raw[categorical_features]).toarray()
+        # X_test = np.hstack([X_test_num, X_test_cat])
+        #
+        # # Initialize and train Decision Tree
+        # dtree = DecisionTreeClassifier(random_state=42)
+        # dtree.fit(X_train, y_train)
+        #
+        # # Predict on test
+        # y_pred = dtree.predict(X_test)
+        #
+        # # Calculate and display multiple metrics
+        # accuracy = accuracy_score(y_test, y_pred)
+        # precision = precision_score(y_test, y_pred)
+        # recall = recall_score(y_test, y_pred)
+        # f1 = f1_score(y_test, y_pred)
+        #
+        # st.markdown(f"### Decision Tree Model Metrics on Test Set")
+        # st.write(f"Accuracy: {accuracy:.4f}")
+        # st.write(f"Precision: {precision:.4f}")
+        # st.write(f"Recall: {recall:.4f}")
+        # st.write(f"F1-score: {f1:.4f}")
+        #
+        # # Confusion matrix with Plotly heatmap
+        # cm = confusion_matrix(y_test, y_pred)
+        # labels = ["Rejected", "Approved"]
+        # total = cm.sum()
+        # percentages = cm / total * 100
+        #
+        # z_text = [[f"{count}<br>{percent:.1f}%" for count, percent in zip(row_counts, row_percs)]
+        #           for row_counts, row_percs in zip(cm, percentages)]
+        #
+        # fig_cm = go.Figure(data=go.Heatmap(
+        #     z=cm,
+        #     x=labels,
+        #     y=labels,
+        #     text=z_text,
+        #     texttemplate="%{text}",
+        #     colorscale='Blues',
+        #     hoverongaps=False,
+        #     colorbar=dict(title="Count")
+        # ))
+        #
+        # fig_cm.update_layout(
+        #     title="Confusion Matrix",
+        #     xaxis_title="Predicted Label",
+        #     yaxis_title="True Label",
+        #     yaxis_autorange='reversed',
+        #     width=600,
+        #     height=500,
+        #     template="plotly_white"
+        # )
+        #
+        # st.plotly_chart(fig_cm, use_container_width=True)
+        #
+        # # Accuracy bar chart
+        # fig_acc = go.Figure(data=go.Bar(
+        #     x=["Accuracy", "Precision", "Recall", "F1"],
+        #     y=[accuracy, precision, recall, f1],
+        #     marker_color=['green', 'blue', 'orange', 'purple'],
+        #     text=[f"{v * 100:.2f}%" for v in [accuracy, precision, recall, f1]],
+        #     textposition='auto'
+        # ))
+        #
+        # fig_acc.update_layout(
+        #     yaxis=dict(range=[0, 1]),
+        #     title="Model Metrics",
+        #     template="plotly_white",
+        #     width=600,
+        #     height=400
+        # )
+        #
+        # st.plotly_chart(fig_acc, use_container_width=False)
+        #
+        # st.markdown("""
+        # **Important Notes:**
+        #
+        # - Preprocessing (scaling, encoding) is done only on train data, then applied to test data to avoid data leakage.
+        # - Stratified split maintains class proportions in train and test sets.
+        # - Evaluate multiple metrics (accuracy, precision, recall, F1) for balanced insight.
+        # - Check class distribution above — if very imbalanced, consider methods like SMOTE or class weights.
+        # - Inspect features manually to ensure no direct leakage of target information.
+        # """)
         url = "https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/loan_approval_dataset.csv"
         df = pd.read_csv(url)
         df.columns = df.columns.str.strip()
@@ -6061,11 +6182,11 @@ with tab3:
 
         X = df.drop(columns=["loan_id", "loan_status"])
 
-        # Check class balance
-        st.write("### Class distribution")
+        # Check class balance before split
+        st.write("### Original Class Distribution")
         st.write(Counter(y))
 
-        # Use stratified split to maintain class proportions in train/test
+        # Stratified split
         strat_split = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
         for train_idx, test_idx in strat_split.split(X, y):
             X_train_raw, X_test_raw = X.iloc[train_idx], X.iloc[test_idx]
@@ -6074,7 +6195,7 @@ with tab3:
         numeric_features = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
         categorical_features = X.select_dtypes(include=["object"]).columns.tolist()
 
-        # Fit preprocessors only on train data
+        # Fit transformers only on train data
         numeric_transformer = StandardScaler().fit(X_train_raw[numeric_features])
         categorical_transformer = OneHotEncoder(drop="first", handle_unknown="ignore").fit(
             X_train_raw[categorical_features])
@@ -6082,23 +6203,31 @@ with tab3:
         # Transform train data
         X_train_num = numeric_transformer.transform(X_train_raw[numeric_features])
         X_train_cat = categorical_transformer.transform(X_train_raw[categorical_features]).toarray()
+
         import numpy as np
 
         X_train = np.hstack([X_train_num, X_train_cat])
 
-        # Transform test data using train-fit transformers
+        # Apply SMOTE to balance classes on training set
+        smote = SMOTE(random_state=42)
+        X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+
+        st.write("### Class Distribution After SMOTE")
+        st.write(Counter(y_train_resampled))
+
+        # Transform test data
         X_test_num = numeric_transformer.transform(X_test_raw[numeric_features])
         X_test_cat = categorical_transformer.transform(X_test_raw[categorical_features]).toarray()
         X_test = np.hstack([X_test_num, X_test_cat])
 
-        # Initialize and train Decision Tree
+        # Train Decision Tree on resampled data
         dtree = DecisionTreeClassifier(random_state=42)
-        dtree.fit(X_train, y_train)
+        dtree.fit(X_train_resampled, y_train_resampled)
 
         # Predict on test
         y_pred = dtree.predict(X_test)
 
-        # Calculate and display multiple metrics
+        # Calculate metrics
         accuracy = accuracy_score(y_test, y_pred)
         precision = precision_score(y_test, y_pred)
         recall = recall_score(y_test, y_pred)
@@ -6142,7 +6271,7 @@ with tab3:
 
         st.plotly_chart(fig_cm, use_container_width=True)
 
-        # Accuracy bar chart
+        # Metrics bar chart
         fig_acc = go.Figure(data=go.Bar(
             x=["Accuracy", "Precision", "Recall", "F1"],
             y=[accuracy, precision, recall, f1],
@@ -6162,12 +6291,9 @@ with tab3:
         st.plotly_chart(fig_acc, use_container_width=False)
 
         st.markdown("""
-        **Important Notes:**
-
-        - Preprocessing (scaling, encoding) is done only on train data, then applied to test data to avoid data leakage.
-        - Stratified split maintains class proportions in train and test sets.
-        - Evaluate multiple metrics (accuracy, precision, recall, F1) for balanced insight.
-        - Check class distribution above — if very imbalanced, consider methods like SMOTE or class weights.
-        - Inspect features manually to ensure no direct leakage of target information.
+        **Notes:**
+        - SMOTE applied **only** on training data to balance classes.
+        - Test data remains untouched to provide realistic evaluation.
+        - Always inspect class distributions before and after applying SMOTE.
         """)
 
