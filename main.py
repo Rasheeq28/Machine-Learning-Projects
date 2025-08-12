@@ -5667,7 +5667,7 @@ with tab3:
         y_pred = model.predict(X_test)
 
         accuracy = accuracy_score(y_test, y_pred)
-        st.markdown(f"### Model Accuracy: **{accuracy:.2f}**")
+        st.markdown(f"### Model Accuracy: **{accuracy * 100:.2f}**")
 
         st.markdown("### Classification Report")
         report = classification_report(y_test, y_pred, output_dict=True)
@@ -5811,7 +5811,7 @@ with tab3:
         y_pred = dtree_model.predict(X_test)
 
         accuracy = accuracy_score(y_test, y_pred)
-        st.markdown(f"### Decision Tree Model Accuracy: **{accuracy:.2f}**")
+        st.markdown(f"### Decision Tree Model Accuracy: **{accuracy * 100:.2f}**")
 
         st.markdown("### Classification Report")
         report = classification_report(y_test, y_pred, output_dict=True)
