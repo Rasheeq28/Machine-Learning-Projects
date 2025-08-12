@@ -5678,7 +5678,11 @@ with tab3:
         cm = confusion_matrix(y_test, y_pred)
         labels = ["Rejected", "Approved"]
 
-        z_text = [[str(y) for y in x] for x in cm]
+        total = cm.sum()
+        percentages = cm / total * 100
+
+        z_text = [[f"{count}<br>{percent:.1f}%" for count, percent in zip(row_counts, row_percs)]
+                  for row_counts, row_percs in zip(cm, percentages)]
 
         fig_cm = go.Figure(data=go.Heatmap(
             z=cm,
