@@ -5737,65 +5737,7 @@ with tab3:
 
         st.plotly_chart(fig_acc, use_container_width=False)
 
-    # --- Explanation Subtab ---
-    with explanation_tab:
-        st.markdown("""
-        # Logistic Regression Model Explanation
 
-        **Objective:**  
-        Predict loan approval status ("Approved" or "Rejected") based on applicant financial data.
-
-        **Data Processing Steps:**  
-        - Loaded raw dataset from CSV.  
-        - Created a new feature *Debt_Income* = loan_amount / income_annum.  
-        - Cleaned and encoded categorical variables with OneHotEncoder (drop first to avoid dummy variable trap).  
-        - Standardized numeric features using StandardScaler.  
-        - Split data into training (80%) and testing (20%) sets.
-
-        **Modeling:**  
-        - Logistic Regression was used due to its interpretability and suitability for binary classification.  
-        - Model trained on processed features to predict binary loan approval outcome.
-
-        **Evaluation Metrics:**  
-        - **Accuracy:** Proportion of correctly classified instances.  
-        - **Confusion Matrix:** Shows TP, TN, FP, FN counts to analyze error types.  
-        - **Classification Report:** Includes Precision, Recall, F1-score per class.
-
-        **Interpretation:**  
-        - High accuracy indicates good predictive power but always check confusion matrix for type of errors.  
-        - False positives (predicting approval incorrectly) may lead to risky loans.  
-        - False negatives (missing approvals) may reduce business opportunities.
-
-        **Possible Improvements:**  
-        - Try other models (Decision Trees, Random Forests) for possibly better performance.  
-        - Perform hyperparameter tuning, feature engineering, and balancing classes if needed.
-        
-
-        ## Decision Tree Model
-
-    **Overview:**  
-    The Decision Tree model is a non-linear classification algorithm that splits the data into branches based on feature values to make predictions.
-
-    **How it works in the code:**  
-    - Data preprocessing steps (scaling numeric features and encoding categoricals) are the same as for logistic regression, using `ColumnTransformer` with `StandardScaler` and `OneHotEncoder`.
-    - The preprocessed data is fed into `DecisionTreeClassifier` from scikit-learn.
-    - The tree splits the data by choosing features and threshold values that best separate classes (loan Approved vs Rejected).
-    - The model learns decision rules by recursively partitioning the feature space.
-    - Finally, predictions are made for the test data based on the learned decision tree.
-
-    **Advantages:**  
-    - Can capture complex, non-linear relationships.  
-    - Easy to interpret and visualize decision rules.  
-    - Handles both numeric and categorical data well (especially after preprocessing).
-
-    **Evaluation Metrics:**  
-    - Same as Logistic Regression: Accuracy, Confusion Matrix, Classification Report.
-
-    **Considerations:**  
-    - Prone to overfitting on training data; may require pruning or parameter tuning.  
-    - Performance depends on the depth and structure of the tree.
-
-    """)
     with dtree_tab:
         url = "https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/loan_approval_dataset.csv"
         df = pd.read_csv(url)
@@ -5905,3 +5847,64 @@ with tab3:
         )
 
         st.plotly_chart(fig_acc, use_container_width=False)
+    with explanation_tab:
+        st.markdown("""
+        # Logistic Regression and Decision Tree Model Explanation
+
+        ## Logistic Regression Model
+
+        **Objective:**  
+        Predict loan approval status ("Approved" or "Rejected") based on applicant financial data.
+
+        **Data Processing Steps:**  
+        - Loaded raw dataset from kaggle.  
+        - Created a new feature *Debt_Income* = loan_amount / income_annum.  
+        - Cleaned and encoded categorical variables with OneHotEncoder (drop first to avoid dummy variable trap).  
+        - Standardized numeric features using StandardScaler.  
+        - Split data into training (80%) and testing (20%) sets.
+
+        **Modeling:**  
+        - Logistic Regression was used due to its interpretability and suitability for binary classification.  
+        - Model trained on processed features to predict binary loan approval outcome.
+
+        **Evaluation Metrics:**  
+        - **Accuracy:** Proportion of correctly classified instances.  
+        - **Confusion Matrix:** Shows TP, TN, FP, FN counts to analyze error types.  
+        - **Classification Report:** Includes Precision, Recall, F1-score per class.
+
+        **Interpretation:**  
+        - High accuracy indicates good predictive power but always check confusion matrix for type of errors.  
+        - False positives (predicting approval incorrectly) may lead to risky loans.  
+        - False negatives (missing approvals) may reduce business opportunities.
+
+        **Possible Improvements:**  
+        - Try other models (Decision Trees, Random Forests) for possibly better performance.  
+        - Perform hyperparameter tuning, feature engineering, and balancing classes if needed.
+
+        ---
+
+        ## Decision Tree Model
+
+        **Overview:**  
+        The Decision Tree model is a non-linear classification algorithm that splits the data into branches based on feature values to make predictions.
+
+        **How it works in the code:**  
+        - Data preprocessing steps (scaling numeric features and encoding categoricals) are the same as for logistic regression, using `ColumnTransformer` with `StandardScaler` and `OneHotEncoder`.
+        - The preprocessed data is fed into `DecisionTreeClassifier` from scikit-learn.
+        - The tree splits the data by choosing features and threshold values that best separate classes (loan Approved vs Rejected).
+        - The model learns decision rules by recursively partitioning the feature space.
+        - Finally, predictions are made for the test data based on the learned decision tree.
+
+        **Advantages:**  
+        - Can capture complex, non-linear relationships.  
+        - Easy to interpret and visualize decision rules.  
+        - Handles both numeric and categorical data well (especially after preprocessing).
+
+        **Evaluation Metrics:**  
+        - Same as Logistic Regression: Accuracy, Confusion Matrix, Classification Report.
+
+        **Considerations:**  
+        - Prone to overfitting on training data; may require pruning or parameter tuning.  
+        - Performance depends on the depth and structure of the tree.
+
+        """)
