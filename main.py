@@ -5617,7 +5617,7 @@ with tab3:
     st.subheader("🏦 Loan Approval Prediction")
 
     dataset_tab, model_tab, explanation_tab, dtree_tab = st.tabs([
-        "📂 Dataset", "📈 Logistic Regression Model", "📝 Explanation", "🌳 Decision Tree Model"
+        "📂 Dataset", "📈 Logistic Regression Model", "🌳 Decision Tree Model", "📝 Explanation"
     ])
 
     # --- Dataset Subtab ---
