@@ -5613,10 +5613,305 @@ with tab2:
         st.markdown("---")
         st.write("🔄 **Note:** Features were standardized to give equal importance before clustering.")
 
+# with tab3:
+#     st.subheader("🏦 Loan Approval Prediction")
+#
+#     dataset_tab, model_tab, explanation_tab, dtree_tab = st.tabs([
+#         "📂 Dataset", "📈 Logistic Regression Model", "🌳 Decision Tree Model", "📝 Explanation"
+#     ])
+#
+#     # --- Dataset Subtab ---
+#     with dataset_tab:
+#         st.write("### Raw Dataset Preview")
+#         url = "https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/loan_approval_dataset.csv"
+#         df_raw = pd.read_csv(url)
+#         st.dataframe(df_raw, use_container_width=True)
+#
+#     # --- Model Subtab ---
+#     with model_tab:
+#         # Load and preprocess dataset
+#         url = "https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/loan_approval_dataset.csv"
+#         df = pd.read_csv(url)
+#         df.columns = df.columns.str.strip()
+#         df["loan_status"] = df["loan_status"].str.strip()
+#         df["Debt_Income"] = df["loan_amount"] / df["income_annum"]
+#
+#         y = df["loan_status"].map({"Approved": 1, "Rejected": 0})
+#         df = df[~y.isna()]
+#         y = y.dropna()
+#
+#         X = df.drop(columns=["loan_id", "loan_status"])
+#
+#         X_train, X_test, y_train, y_test = train_test_split(
+#             X, y, test_size=0.2, random_state=42)
+#
+#         numeric_features = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
+#         categorical_features = X.select_dtypes(include=["object"]).columns.tolist()
+#
+#         numeric_transformer = StandardScaler()
+#         categorical_transformer = OneHotEncoder(drop="first", handle_unknown="ignore")
+#
+#         preprocessor = ColumnTransformer(
+#             transformers=[
+#                 ("num", numeric_transformer, numeric_features),
+#                 ("cat", categorical_transformer, categorical_features)
+#             ]
+#         )
+#
+#         model = Pipeline(steps=[
+#             ("preprocessor", preprocessor),
+#             ("classifier", LogisticRegression(max_iter=2000, random_state=42))
+#         ])
+#
+#         model.fit(X_train, y_train)
+#         y_pred = model.predict(X_test)
+#
+#         accuracy = accuracy_score(y_test, y_pred)
+#         st.markdown(f"### Model Accuracy: **{accuracy * 100:.4f}**")
+#
+#         st.markdown("### Classification Report")
+#         report = classification_report(y_test, y_pred, output_dict=True)
+#         report_df = pd.DataFrame(report).transpose()
+#         st.dataframe(report_df.style.format("{:.2f}"))
+#
+#         # Confusion matrix with Plotly heatmap (interactive)
+#         cm = confusion_matrix(y_test, y_pred)
+#         labels = ["Rejected", "Approved"]
+#
+#         total = cm.sum()
+#         percentages = cm / total * 100
+#
+#         z_text = [[f"{count}<br>{percent:.1f}%" for count, percent in zip(row_counts, row_percs)]
+#                   for row_counts, row_percs in zip(cm, percentages)]
+#
+#         fig_cm = go.Figure(data=go.Heatmap(
+#             z=cm,
+#             x=labels,
+#             y=labels,
+#             text=z_text,
+#             texttemplate="%{text}",
+#             colorscale='Blues',
+#             hoverongaps=False,
+#             colorbar=dict(title="Count")
+#         ))
+#
+#         fig_cm.update_layout(
+#             title="Confusion Matrix",
+#             xaxis_title="Predicted Label",
+#             yaxis_title="True Label",
+#             yaxis_autorange='reversed',
+#             width=600,
+#             height=500,
+#             template="plotly_white"
+#         )
+#
+#         st.plotly_chart(fig_cm, use_container_width=True)
+#
+#         # Interpretation text for confusion matrix
+#         st.markdown("""
+#         **Confusion Matrix Interpretation:**
+#         - **True Positives (Top-Left):** Number of loans correctly predicted as Approved.
+#         - **True Negatives (Bottom-Right):** Number of loans correctly predicted as Rejected.
+#         - **False Positives (Top-Right):** Loans predicted as Approved but were Rejected (Type I error).
+#         - **False Negatives (Bottom-Left):** Loans predicted as Rejected but were Approved (Type II error).
+#
+#         Ideally, we want to maximize true positives and true negatives while minimizing false positives and false negatives.
+#         """)
+#
+#         # Accuracy bar chart (Plotly)
+#         fig_acc = go.Figure(data=go.Bar(
+#             x=["Accuracy"],
+#             y=[accuracy],
+#             marker_color='green',
+#             text=[f"{accuracy * 100:.4f}"],
+#             textposition='auto'
+#         ))
+#
+#         fig_acc.update_layout(
+#             yaxis=dict(range=[0, 1]),
+#             title="Model Accuracy",
+#             template="plotly_white",
+#             width=400,
+#             height=400
+#         )
+#
+#         st.plotly_chart(fig_acc, use_container_width=False)
+#
+#
+#     with dtree_tab:
+#         url = "https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/loan_approval_dataset.csv"
+#         df = pd.read_csv(url)
+#         df.columns = df.columns.str.strip()
+#         df["loan_status"] = df["loan_status"].str.strip()
+#         df["Debt_Income"] = df["loan_amount"] / df["income_annum"]
+#
+#         y = df["loan_status"].map({"Approved": 1, "Rejected": 0})
+#         df = df[~y.isna()]
+#         y = y.dropna()
+#
+#         X = df.drop(columns=["loan_id", "loan_status"])
+#
+#         X_train, X_test, y_train, y_test = train_test_split(
+#             X, y, test_size=0.2, random_state=42)
+#
+#         numeric_features = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
+#         categorical_features = X.select_dtypes(include=["object"]).columns.tolist()
+#
+#         numeric_transformer = StandardScaler()
+#         categorical_transformer = OneHotEncoder(drop="first", handle_unknown="ignore")
+#
+#         preprocessor = ColumnTransformer(
+#             transformers=[
+#                 ("num", numeric_transformer, numeric_features),
+#                 ("cat", categorical_transformer, categorical_features)
+#             ]
+#         )
+#
+#         from sklearn.tree import DecisionTreeClassifier
+#
+#         dtree_model = Pipeline(steps=[
+#             ("preprocessor", preprocessor),
+#             ("classifier", DecisionTreeClassifier(random_state=42))
+#         ])
+#
+#         dtree_model.fit(X_train, y_train)
+#         y_pred = dtree_model.predict(X_test)
+#
+#         accuracy = accuracy_score(y_test, y_pred)
+#         st.markdown(f"### Decision Tree Model Accuracy: **{accuracy * 100:.4f}**")
+#
+#         st.markdown("### Classification Report")
+#         report = classification_report(y_test, y_pred, output_dict=True)
+#         report_df = pd.DataFrame(report).transpose()
+#         st.dataframe(report_df.style.format("{:.2f}"))
+#
+#         # Confusion matrix with Plotly heatmap (interactive)
+#         cm = confusion_matrix(y_test, y_pred)
+#         labels = ["Rejected", "Approved"]
+#
+#         total = cm.sum()
+#         percentages = cm / total * 100
+#
+#         z_text = [[f"{count}<br>{percent:.1f}%" for count, percent in zip(row_counts, row_percs)]
+#                   for row_counts, row_percs in zip(cm, percentages)]
+#
+#         fig_cm = go.Figure(data=go.Heatmap(
+#             z=cm,
+#             x=labels,
+#             y=labels,
+#             text=z_text,
+#             texttemplate="%{text}",
+#             colorscale='Blues',
+#             hoverongaps=False,
+#             colorbar=dict(title="Count")
+#         ))
+#
+#         fig_cm.update_layout(
+#             title="Confusion Matrix",
+#             xaxis_title="Predicted Label",
+#             yaxis_title="True Label",
+#             yaxis_autorange='reversed',
+#             width=600,
+#             height=500,
+#             template="plotly_white"
+#         )
+#
+#         st.plotly_chart(fig_cm, use_container_width=True)
+#
+#         # Interpretation text for confusion matrix
+#         st.markdown("""
+#         **Confusion Matrix Interpretation:**
+#         - **True Positives (Top-Left):** Number of loans correctly predicted as Approved.
+#         - **True Negatives (Bottom-Right):** Number of loans correctly predicted as Rejected.
+#         - **False Positives (Top-Right):** Loans predicted as Approved but were Rejected (Type I error).
+#         - **False Negatives (Bottom-Left):** Loans predicted as Rejected but were Approved (Type II error).
+#
+#         Ideally, we want to maximize true positives and true negatives while minimizing false positives and false negatives.
+#         """)
+#
+#         # Accuracy bar chart (Plotly)
+#         fig_acc = go.Figure(data=go.Bar(
+#             x=["Accuracy"],
+#             y=[accuracy],
+#             marker_color='green',
+#             text=[f"{accuracy * 100:.4f}"],
+#             textposition='auto'
+#         ))
+#
+#         fig_acc.update_layout(
+#             yaxis=dict(range=[0, 1]),
+#             title="Model Accuracy",
+#             template="plotly_white",
+#             width=400,
+#             height=400
+#         )
+#
+#         st.plotly_chart(fig_acc, use_container_width=False)
+#     with explanation_tab:
+#         st.markdown("""
+#         # Logistic Regression and Decision Tree Model Explanation
+#
+#         ## Logistic Regression Model
+#
+#         **Objective:**
+#         Predict loan approval status ("Approved" or "Rejected") based on applicant financial data.
+#
+#         **Data Processing Steps:**
+#         - Loaded raw dataset from kaggle.
+#         - Created a new feature *Debt_Income* = loan_amount / income_annum.
+#         - Cleaned and encoded categorical variables with OneHotEncoder (drop first to avoid dummy variable trap).
+#         - Standardized numeric features using StandardScaler.
+#         - Split data into training (80%) and testing (20%) sets.
+#
+#         **Modeling:**
+#         - Logistic Regression was used due to its interpretability and suitability for binary classification.
+#         - Model trained on processed features to predict binary loan approval outcome.
+#
+#         **Evaluation Metrics:**
+#         - **Accuracy:** Proportion of correctly classified instances.
+#         - **Confusion Matrix:** Shows TP, TN, FP, FN counts to analyze error types.
+#         - **Classification Report:** Includes Precision, Recall, F1-score per class.
+#
+#         **Interpretation:**
+#         - High accuracy indicates good predictive power but always check confusion matrix for type of errors.
+#         - False positives (predicting approval incorrectly) may lead to risky loans.
+#         - False negatives (missing approvals) may reduce business opportunities.
+#
+#         **Possible Improvements:**
+#         - Try other models (Decision Trees, Random Forests) for possibly better performance.
+#         - Perform hyperparameter tuning, feature engineering, and balancing classes if needed.
+#
+#         ---
+#
+#         ## Decision Tree Model
+#
+#         **Overview:**
+#         The Decision Tree model is a non-linear classification algorithm that splits the data into branches based on feature values to make predictions.
+#
+#         **How it works in the code:**
+#         - Data preprocessing steps (scaling numeric features and encoding categoricals) are the same as for logistic regression, using `ColumnTransformer` with `StandardScaler` and `OneHotEncoder`.
+#         - The preprocessed data is fed into `DecisionTreeClassifier` from scikit-learn.
+#         - The tree splits the data by choosing features and threshold values that best separate classes (loan Approved vs Rejected).
+#         - The model learns decision rules by recursively partitioning the feature space.
+#         - Finally, predictions are made for the test data based on the learned decision tree.
+#
+#         **Advantages:**
+#         - Can capture complex, non-linear relationships.
+#         - Easy to interpret and visualize decision rules.
+#         - Handles both numeric and categorical data well (especially after preprocessing).
+#
+#         **Evaluation Metrics:**
+#         - Same as Logistic Regression: Accuracy, Confusion Matrix, Classification Report.
+#
+#         **Considerations:**
+#         - Prone to overfitting on training data; may require pruning or parameter tuning.
+#         - Performance depends on the depth and structure of the tree.
+#
+#         """)
 with tab3:
     st.subheader("🏦 Loan Approval Prediction")
 
-    dataset_tab, model_tab, explanation_tab, dtree_tab = st.tabs([
+    dataset_tab, model_tab, dtree_tab, explanation_tab = st.tabs([
         "📂 Dataset", "📈 Logistic Regression Model", "🌳 Decision Tree Model", "📝 Explanation"
     ])
 
@@ -5627,7 +5922,7 @@ with tab3:
         df_raw = pd.read_csv(url)
         st.dataframe(df_raw, use_container_width=True)
 
-    # --- Model Subtab ---
+    # --- Logistic Regression Model Subtab ---
     with model_tab:
         # Load and preprocess dataset
         url = "https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/loan_approval_dataset.csv"
@@ -5658,16 +5953,27 @@ with tab3:
             ]
         )
 
-        model = Pipeline(steps=[
+        # Logistic Regression pipeline
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.model_selection import cross_val_score
+
+        lr_pipeline = Pipeline(steps=[
             ("preprocessor", preprocessor),
             ("classifier", LogisticRegression(max_iter=2000, random_state=42))
         ])
 
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
+        # 5-Fold CV for Logistic Regression
+        cv_folds = 5
+        lr_cv_scores = cross_val_score(lr_pipeline, X, y, cv=cv_folds, scoring="accuracy")
+        st.markdown(f"### 5-Fold Cross-Validation Accuracy")
+        st.write(f"Logistic Regression CV Accuracy: {lr_cv_scores.mean():.3f} ± {lr_cv_scores.std():.3f}")
+
+        # Fit on train and evaluate on test
+        lr_pipeline.fit(X_train, y_train)
+        y_pred = lr_pipeline.predict(X_test)
 
         accuracy = accuracy_score(y_test, y_pred)
-        st.markdown(f"### Model Accuracy: **{accuracy * 100:.4f}**")
+        st.markdown(f"### Model Accuracy on Test Set: **{accuracy * 100:.4f}%**")
 
         st.markdown("### Classification Report")
         report = classification_report(y_test, y_pred, output_dict=True)
@@ -5723,7 +6029,7 @@ with tab3:
             x=["Accuracy"],
             y=[accuracy],
             marker_color='green',
-            text=[f"{accuracy * 100:.4f}"],
+            text=[f"{accuracy * 100:.4f}%"],
             textposition='auto'
         ))
 
@@ -5737,8 +6043,10 @@ with tab3:
 
         st.plotly_chart(fig_acc, use_container_width=False)
 
-
+    # --- Decision Tree Model Subtab ---
     with dtree_tab:
+        from sklearn.tree import DecisionTreeClassifier
+
         url = "https://raw.githubusercontent.com/Rasheeq28/datasets/refs/heads/main/loan_approval_dataset.csv"
         df = pd.read_csv(url)
         df.columns = df.columns.str.strip()
@@ -5767,18 +6075,22 @@ with tab3:
             ]
         )
 
-        from sklearn.tree import DecisionTreeClassifier
-
-        dtree_model = Pipeline(steps=[
+        dtree_pipeline = Pipeline(steps=[
             ("preprocessor", preprocessor),
             ("classifier", DecisionTreeClassifier(random_state=42))
         ])
 
-        dtree_model.fit(X_train, y_train)
-        y_pred = dtree_model.predict(X_test)
+        # 5-Fold CV for Decision Tree
+        dt_cv_scores = cross_val_score(dtree_pipeline, X, y, cv=cv_folds, scoring="accuracy")
+        st.markdown(f"### 5-Fold Cross-Validation Accuracy")
+        st.write(f"Decision Tree CV Accuracy: {dt_cv_scores.mean():.3f} ± {dt_cv_scores.std():.3f}")
+
+        # Fit on train and evaluate on test
+        dtree_pipeline.fit(X_train, y_train)
+        y_pred = dtree_pipeline.predict(X_test)
 
         accuracy = accuracy_score(y_test, y_pred)
-        st.markdown(f"### Decision Tree Model Accuracy: **{accuracy * 100:.4f}**")
+        st.markdown(f"### Decision Tree Model Accuracy on Test Set: **{accuracy * 100:.4f}%**")
 
         st.markdown("### Classification Report")
         report = classification_report(y_test, y_pred, output_dict=True)
@@ -5834,7 +6146,7 @@ with tab3:
             x=["Accuracy"],
             y=[accuracy],
             marker_color='green',
-            text=[f"{accuracy * 100:.4f}"],
+            text=[f"{accuracy * 100:.4f}%"],
             textposition='auto'
         ))
 
@@ -5847,6 +6159,8 @@ with tab3:
         )
 
         st.plotly_chart(fig_acc, use_container_width=False)
+
+    # --- Explanation Subtab ---
     with explanation_tab:
         st.markdown("""
         # Logistic Regression and Decision Tree Model Explanation
@@ -5857,7 +6171,7 @@ with tab3:
         Predict loan approval status ("Approved" or "Rejected") based on applicant financial data.
 
         **Data Processing Steps:**  
-        - Loaded raw dataset from kaggle.  
+        - Loaded raw dataset from CSV.  
         - Created a new feature *Debt_Income* = loan_amount / income_annum.  
         - Cleaned and encoded categorical variables with OneHotEncoder (drop first to avoid dummy variable trap).  
         - Standardized numeric features using StandardScaler.  
