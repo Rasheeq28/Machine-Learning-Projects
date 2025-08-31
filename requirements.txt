@@ -8,3 +8,4 @@ kagglehub
 xgboost
 seaborn
 imbalanced-learn
+tabulate
