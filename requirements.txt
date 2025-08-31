@@ -9,3 +9,4 @@ xgboost
 seaborn
 imbalanced-learn
 tabulate
+statsmodels
