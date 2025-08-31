@@ -628,4 +628,76 @@ with tab3:
         - Inspect features manually to ensure no direct leakage of target information.
         """)
 with tab4:
-    st.subheader("Walmart Sales forecasting")
+    st.subheader("📈 Walmart Sales Forecasting")
+
+    # Create subtabs
+    eda_tab, test_tab, train_tab = st.tabs(["📊 EDA and Merging", "🧪 Testing", "🏋️ Training"])
+
+    # ---------------- EDA and Merging ----------------
+    with eda_tab:
+        st.markdown("### Merged Stores, Features and Train, Cleaned data and encoded categorical columns")
+
+        # Load dataset from local directory
+        mergedtrain = pd.read_csv("mergedtrain.csv")
+
+        # Show preview
+        st.write("#### Preview of Merged Train Data")
+        st.dataframe(mergedtrain.head())
+
+        st.markdown("### Merged Stores, Features and Test data")
+
+        # --- EDA on numerical columns ---
+        st.subheader("Exploratory Data Analysis (Numerical Columns)")
+        num_cols = mergedtrain.select_dtypes(include=['int64', 'float64']).columns.tolist()
+
+        # Summary stats
+        st.write("#### Summary Statistics")
+        st.dataframe(mergedtrain[num_cols].describe().T)
+
+        # Correlation heatmap
+        st.write("#### Correlation Heatmap")
+        corr = mergedtrain[num_cols].corr()
+        fig_corr = px.imshow(
+            corr,
+            text_auto=True,
+            aspect="auto",
+            color_continuous_scale="RdBu_r",
+            title="Correlation Heatmap (Numerical Features)"
+        )
+        st.plotly_chart(fig_corr, use_container_width=True)
+
+        # Distribution plots for numerical features
+        st.write("#### Distributions of Numerical Columns")
+        for col in num_cols:
+            fig = px.histogram(
+                mergedtrain,
+                x=col,
+                nbins=30,
+                marginal="box",
+                title=f"Distribution of {col}"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+        # Interactive scatter plots
+        st.write("#### Scatter Plots (Numeric Relationships)")
+        if "Weekly_Sales" in mergedtrain.columns:
+            for col in [c for c in num_cols if c != "Weekly_Sales"]:
+                fig = px.scatter(
+                    mergedtrain,
+                    x=col,
+                    y="Weekly_Sales",
+                    trendline="ols",
+                    title=f"{col} vs Weekly Sales"
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+    # ---------------- Testing ----------------
+    with test_tab:
+        st.subheader("🧪 Testing Phase")
+        st.write("Here you can implement testing of models using hold-out / unseen datasets.")
+
+    # ---------------- Training ----------------
+    with train_tab:
+        st.subheader("🏋️ Training Phase")
+        st.write("Here you can implement model training pipelines (XGBoost, LightGBM, etc.).")
+
