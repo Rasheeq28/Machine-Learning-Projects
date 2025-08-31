@@ -638,8 +638,7 @@ with tab4:
     with eda_tab:
         st.markdown("### Merged Stores, Features and Train, Cleaned data and encoded categorical columns")
 
-        mergedtrain_url = "https://drive.google.com/uc?export=download&id=1BjBdX5a1uWIPhWtTYvZaZI3gYx5h6Aek"
-        mergedtrain = pd.read_csv(mergedtrain_url)
+        mergedtrain = pd.read_csv("mergedtrain.csv")
 
         # Show preview
         st.write("#### Preview of Merged Train Data")
