@@ -41,6 +41,7 @@ import IPython.display as display
 from IPython.display import display
 import xgboost as xgb
 import missingno as msno
+import os
 
 st.set_page_config(page_title="Machine Learning projects", layout="wide")
 st.title("📊 Machine Learning projects")
@@ -638,7 +639,8 @@ with tab4:
         st.markdown("### Merged Stores, Features and Train, Cleaned data and encoded categorical columns")
 
         # Load dataset from local directory
-        mergedtrain = pd.read_csv(r"C:\Users\rashe\PycharmProjects\student_score_prediction\mergedtrain.csv")
+        mergedtrain_path = os.path.join(os.getcwd(), "mergedtrain.csv")
+        mergedtrain = pd.read_csv(mergedtrain_path)
 
         # Show preview
         st.write("#### Preview of Merged Train Data")
