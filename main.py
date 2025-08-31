@@ -628,6 +628,181 @@ with tab3:
         - Check class distribution above — if very imbalanced, consider methods like SMOTE or class weights.
         - Inspect features manually to ensure no direct leakage of target information.
         """)
+# with tab4:
+#     st.subheader("📈 Walmart Sales Forecasting")
+#
+#     # Create subtabs
+#     eda_tab, test_tab, train_tab = st.tabs(["📊 EDA and Merging", "🧪 Testing", "🏋️ Training"])
+#
+#     # ---------------- EDA and Merging ----------------
+#     with eda_tab:
+#         st.markdown("### Merged Stores, Features and Train, Cleaned data and encoded categorical columns")
+#
+#         mergedtrain = pd.read_csv("mergedtrain.csv")
+#
+#         # Show preview
+#         st.write("#### Preview of Merged Train Data")
+#         st.dataframe(mergedtrain.head())
+#
+#         st.markdown("### Merged Stores, Features and Test data")
+#
+#         # --- EDA on numerical columns ---
+#         st.subheader("Exploratory Data Analysis (Numerical Columns)")
+#         num_cols = mergedtrain.select_dtypes(include=['int64', 'float64']).columns.tolist()
+#
+#         # Summary stats
+#         st.write("#### Summary Statistics")
+#         st.dataframe(mergedtrain[num_cols].describe().T)
+#
+#         # Correlation heatmap
+#         st.write("#### Correlation Heatmap")
+#         corr = mergedtrain[num_cols].corr()
+#         fig_corr = px.imshow(
+#             corr,
+#             text_auto=True,
+#             aspect="auto",
+#             color_continuous_scale="RdBu_r",
+#             title="Correlation Heatmap (Numerical Features)"
+#         )
+#         st.plotly_chart(fig_corr, use_container_width=True)
+#
+#         # Distribution plots for numerical features
+#         st.write("#### Distributions of Numerical Columns")
+#         for col in num_cols:
+#             fig = px.histogram(
+#                 mergedtrain,
+#                 x=col,
+#                 nbins=30,
+#                 marginal="box",
+#                 title=f"Distribution of {col}"
+#             )
+#             st.plotly_chart(fig, use_container_width=True)
+#
+#         # Interactive scatter plots
+#         st.write("#### Scatter Plots (Numeric Relationships)")
+#         if "Weekly_Sales" in mergedtrain.columns:
+#             for col in [c for c in num_cols if c != "Weekly_Sales"]:
+#                 fig = px.scatter(
+#                     mergedtrain,
+#                     x=col,
+#                     y="Weekly_Sales",
+#                     trendline="ols",
+#                     title=f"{col} vs Weekly Sales"
+#                 )
+#                 st.plotly_chart(fig, use_container_width=True)
+#
+#     # ---------------- Testing ----------------
+#
+#     with test_tab:
+#         st.subheader("🧪 Testing Phase")
+#
+#         # Load merged dataset from project folder
+#         merged_path = "merged.csv"  # or "data/merged.csv" if inside a folder
+#         merged = pd.read_csv(merged_path)
+#
+#         # Ensure Date is parsed properly
+#         merged["Date"] = pd.to_datetime(merged["Date"])
+#
+#         # --- 1. Split train and test ---
+#         train_df = merged[merged["Date"] < "2012-11-02"].copy()
+#         test_df = merged[merged["Date"] >= "2012-11-02"].copy()
+#
+#         features = [col for col in merged.columns if col not in ["Weekly_Sales", "Date"]]
+#
+#         X_train = train_df[features]
+#         y_train = train_df["Weekly_Sales"]
+#
+#         X_test = test_df[features]
+#
+#         # --- 2. Initialize and fit XGBoost ---
+#         model = XGBRegressor(
+#             n_estimators=1000,
+#             learning_rate=0.05,
+#             max_depth=6,
+#             subsample=0.8,
+#             colsample_bytree=0.8,
+#             random_state=42,
+#             n_jobs=-1
+#         )
+#
+#         model.fit(X_train, y_train)
+#
+#         # --- 3. Predict Weekly_Sales for test_df ---
+#         preds = model.predict(X_test)
+#         test_df = test_df.copy()
+#         test_df["Weekly_Sales_Predicted"] = preds
+#
+#         # --- 4. Aggregate predicted weekly sales per Date ---
+#         predicted_table = test_df.groupby("Date")["Weekly_Sales_Predicted"].sum().reset_index()
+#         predicted_table = predicted_table.sort_values("Date").reset_index(drop=True)
+#
+#         # --- 5. Display Predicted Table in Streamlit ---
+#         st.markdown("### Predicted Weekly Sales per Date")
+#         st.dataframe(predicted_table.head(20), use_container_width=True)
+#
+#         # --- Optional: evaluate if actuals exist ---
+#         if "Weekly_Sales" in test_df.columns and test_df["Weekly_Sales"].notna().any():
+#             y_true = test_df["Weekly_Sales"]
+#             y_pred = test_df["Weekly_Sales_Predicted"]
+#
+#             rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+#             mae = mean_absolute_error(y_true, y_pred)
+#             r2 = r2_score(y_true, y_pred)
+#
+#             st.markdown("### 📊 Performance on Test Set")
+#             st.write(f"**RMSE:** {rmse:.2f}")
+#             st.write(f"**MAE:** {mae:.2f}")
+#             st.write(f"**R²:** {r2:.4f}")
+#
+#         # --- Visualization: Actual vs Predicted ---
+#         st.markdown("### 📈 Weekly Sales: Actual (Train) vs Predicted (Test)")
+#
+#         # Aggregate actual train weekly sales per Date
+#         train_agg = train_df.groupby("Date")["Weekly_Sales"].sum().reset_index()
+#
+#         # Create figure
+#         fig = go.Figure()
+#
+#         # Actual train sales
+#         fig.add_trace(go.Scatter(
+#             x=train_agg["Date"],
+#             y=train_agg["Weekly_Sales"],
+#             mode='lines+markers',
+#             name='Actual (Train)',
+#             line=dict(color='blue'),
+#             marker=dict(size=6),
+#             hovertemplate='Date: %{x}<br>Sales: %{y}<extra></extra>'
+#         ))
+#
+#         # Predicted test sales
+#         fig.add_trace(go.Scatter(
+#             x=predicted_table["Date"],
+#             y=predicted_table["Weekly_Sales_Predicted"],
+#             mode='lines+markers',
+#             name='Predicted (Test)',
+#             line=dict(color='orange'),
+#             marker=dict(size=6),
+#             hovertemplate='Date: %{x}<br>Sales: %{y}<extra></extra>'
+#         ))
+#
+#         # Layout
+#         fig.update_layout(
+#             title="Weekly Sales: Actual (Train) vs Predicted (Test)",
+#             xaxis_title="Date",
+#             yaxis_title="Weekly Sales (Aggregated)",
+#             hovermode="x unified",
+#             template="plotly_white",
+#             width=900,
+#             height=500
+#         )
+#
+#         st.plotly_chart(fig, use_container_width=True)
+#
+#     # ---------------- Training ----------------
+#     with train_tab:
+#         st.subheader("🏋️ Training Phase")
+#         st.write("Here you can implement model training pipelines (XGBoost, LightGBM, etc.).")
+#
 with tab4:
     st.subheader("📈 Walmart Sales Forecasting")
 
@@ -638,13 +813,21 @@ with tab4:
     with eda_tab:
         st.markdown("### Merged Stores, Features and Train, Cleaned data and encoded categorical columns")
 
-        mergedtrain = pd.read_csv("mergedtrain.csv")
+        # Load mergedtrain.csv safely
+        try:
+            mergedtrain = pd.read_csv("mergedtrain.csv")
+        except FileNotFoundError:
+            st.warning("⚠️ mergedtrain.csv not found in project folder. Please upload it.")
+            uploaded_file = st.file_uploader("Upload mergedtrain.csv", type=["csv"])
+            if uploaded_file is not None:
+                mergedtrain = pd.read_csv(uploaded_file)
+                st.success("✅ mergedtrain.csv loaded successfully!")
+            else:
+                st.stop()
 
         # Show preview
         st.write("#### Preview of Merged Train Data")
         st.dataframe(mergedtrain.head())
-
-        st.markdown("### Merged Stores, Features and Test data")
 
         # --- EDA on numerical columns ---
         st.subheader("Exploratory Data Analysis (Numerical Columns)")
@@ -692,13 +875,20 @@ with tab4:
                 st.plotly_chart(fig, use_container_width=True)
 
     # ---------------- Testing ----------------
-
     with test_tab:
         st.subheader("🧪 Testing Phase")
 
-        # Load merged dataset from project folder
-        merged_path = "merged.csv"  # or "data/merged.csv" if inside a folder
-        merged = pd.read_csv(merged_path)
+        # Load merged.csv safely
+        try:
+            merged = pd.read_csv("merged.csv")
+        except FileNotFoundError:
+            st.warning("⚠️ merged.csv not found in project folder. Please upload it.")
+            uploaded_file = st.file_uploader("Upload merged.csv", type=["csv"])
+            if uploaded_file is not None:
+                merged = pd.read_csv(uploaded_file)
+                st.success("✅ merged.csv loaded successfully!")
+            else:
+                st.stop()
 
         # Ensure Date is parsed properly
         merged["Date"] = pd.to_datetime(merged["Date"])
@@ -802,4 +992,3 @@ with tab4:
     with train_tab:
         st.subheader("🏋️ Training Phase")
         st.write("Here you can implement model training pipelines (XGBoost, LightGBM, etc.).")
-
