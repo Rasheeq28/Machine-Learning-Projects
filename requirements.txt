@@ -11,3 +11,4 @@ imbalanced-learn
 tabulate
 statsmodels
 ipython
+missingno
