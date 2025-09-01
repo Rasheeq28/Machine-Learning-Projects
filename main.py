@@ -1311,3 +1311,118 @@ with tab4:
             )
 
             st.plotly_chart(fig, use_container_width=True)
+
+        # ==============================
+        # TYPE C TRAINING (Simplified, No Lags/Rollings)
+        # ==============================
+        with type_c_train_tab:
+            st.markdown("### 📊 Training - Type C Stores (Simplified Features)")
+
+
+            # --- Step 0: Load C_train ---
+            @st.cache_data
+            def load_c_train():
+                file_id = "1TPms7rHBbe6s7GmnoIiKC18GxS8wU6QZ"
+                download_url = f"https://drive.google.com/uc?id={file_id}"
+                df = pd.read_csv(download_url)
+                df["Date"] = pd.to_datetime(df["Date"])
+                return df
+
+
+            C_train = load_c_train()
+
+            # --- Step 1: Preprocessing ---
+            df = C_train.copy()
+
+
+            # Drop NAs if any (from shift)
+            df = df.dropna().reset_index(drop=True)
+
+            # --- Step 2: Train/Test Split ---
+            split_idx = int(len(df["Date"].unique()) * 0.8)
+            train_dates = df["Date"].unique()[:split_idx]
+            test_dates = df["Date"].unique()[split_idx:]
+
+            train = df[df["Date"].isin(train_dates)]
+            test = df[df["Date"].isin(test_dates)]
+
+            X_train = train.drop(columns=["Weekly_Sales", "Date"])
+            y_train = train["Weekly_Sales"]
+            X_test = test.drop(columns=["Weekly_Sales", "Date"])
+            y_test = test["Weekly_Sales"]
+
+
+            # --- Step 3: Train Model ---
+            @st.cache_resource
+            def train_model_c(X, y):
+                model = XGBRegressor(
+                    n_estimators=3000,
+                    learning_rate=0.045,
+                    max_depth=6,
+                    subsample=1,
+                    colsample_bytree=0.85,
+                    min_child_weight=5,
+
+                )
+                model.fit(X, y)
+                return model
+
+
+            with st.spinner("Training XGBoost model for Type C Stores..."):
+                model = train_model_c(X_train, y_train)
+            st.success("✅ Model training complete for Type C Stores!")
+
+            # --- Step 4: Predict & Evaluate ---
+            y_pred = model.predict(X_test)
+
+            rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+            mae = mean_absolute_error(y_test, y_pred)
+            r2 = r2_score(y_test, y_pred)
+
+            st.markdown("### 📈 Model Performance")
+            st.write(f"**RMSE:** {rmse:.2f}")
+            st.write(f"**MAE:** {mae:.2f}")
+            st.write(f"**R²:** {r2:.4f}")
+
+            # --- Step 5: Aggregated Visualization ---
+            agg_plot = test.copy()
+            agg_plot["Predicted"] = y_pred
+            agg_plot = agg_plot.groupby("Date")[["Weekly_Sales", "Predicted"]].sum().reset_index()
+
+            import plotly.graph_objects as go
+
+            fig = go.Figure()
+
+            # Actual sales
+            fig.add_trace(go.Scatter(
+                x=agg_plot["Date"],
+                y=agg_plot["Weekly_Sales"],
+                mode="lines+markers",
+                name="Actual",
+                line=dict(color="blue"),
+                marker=dict(size=6),
+                hovertemplate="Date: %{x}<br>Sales: %{y}<extra></extra>"
+            ))
+
+            # Predicted sales
+            fig.add_trace(go.Scatter(
+                x=agg_plot["Date"],
+                y=agg_plot["Predicted"],
+                mode="lines+markers",
+                name="Predicted",
+                line=dict(color="orange"),
+                marker=dict(size=6),
+                hovertemplate="Date: %{x}<br>Sales: %{y}<extra></extra>"
+            ))
+
+            fig.update_layout(
+                title="Actual vs Predicted Weekly Sales (Type C Stores - Simplified Features)",
+                xaxis_title="Date",
+                yaxis_title="Weekly Sales",
+                hovermode="x unified",
+                template="plotly_white",
+                width=900,
+                height=500
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
