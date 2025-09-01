@@ -642,43 +642,50 @@ with tab4:
     with test_tab:
         st.subheader("🧪 Testing Phase")
 
-        # --- Load dataset ---
-        # File ID from your link
-        file_id = "1GgRiYJe3rpXwojA75qeRuMNy-ZobpoC1"
-        download_url = f"https://drive.google.com/uc?id={file_id}"
 
-        # Load CSV into pandas
-        merged = pd.read_csv(download_url)
-        merged["Date"] = pd.to_datetime(merged["Date"])
+        # --- 0. Load dataset with caching ---
+        @st.cache_data
+        def load_data():
+            file_id = "1GgRiYJe3rpXwojA75qeRuMNy-ZobpoC1"
+            download_url = f"https://drive.google.com/uc?id={file_id}"
+            df = pd.read_csv(download_url)
+            df["Date"] = pd.to_datetime(df["Date"])
+            return df
+
+
+        merged = load_data()
 
         # --- 1. Split train and test ---
         train_df = merged[merged["Date"] < "2012-11-02"].copy()
         test_df = merged[merged["Date"] >= "2012-11-02"].copy()
 
         features = [col for col in merged.columns if col not in ["Weekly_Sales", "Date"]]
-
         X_train = train_df[features]
         y_train = train_df["Weekly_Sales"]
-
         X_test = test_df[features]
 
-        # --- 2. Initialize and fit XGBoost ---
-        model = XGBRegressor(
-            n_estimators=1000,
-            learning_rate=0.05,
-            max_depth=6,
-            subsample=0.8,
-            colsample_bytree=0.8,
-            random_state=42,
-            n_jobs=-1
-        )
 
-        model.fit(X_train, y_train)
+        # --- 2. Train XGBoost model with caching ---
+        @st.cache_resource
+        def train_model(X, y):
+            model = XGBRegressor(
+                n_estimators=1000,
+                learning_rate=0.05,
+                max_depth=6,
+                subsample=0.8,
+                colsample_bytree=0.8,
+                random_state=42,
+                n_jobs=-1
+            )
+            model.fit(X, y)
+            return model
+
+
+        model = train_model(X_train, y_train)
 
         # --- 3. Predict Weekly_Sales for test_df ---
-        preds = model.predict(X_test)
         test_df = test_df.copy()
-        test_df["Weekly_Sales_Predicted"] = preds
+        test_df["Weekly_Sales_Predicted"] = model.predict(X_test)
 
         # --- 4. Aggregate predicted weekly sales per Date ---
         predicted_table = test_df.groupby("Date")["Weekly_Sales_Predicted"].sum().reset_index()
@@ -687,7 +694,7 @@ with tab4:
         st.markdown("### 📅 Predicted Weekly Sales per Date")
         st.dataframe(predicted_table)
 
-        # --- 5. Optional: evaluate if actuals exist ---
+        # --- 5. Evaluate if actuals exist ---
         if "Weekly_Sales" in test_df.columns and test_df["Weekly_Sales"].notna().any():
             y_true = test_df["Weekly_Sales"]
             y_pred = test_df["Weekly_Sales_Predicted"]
@@ -701,12 +708,10 @@ with tab4:
             st.write(f"**MAE:** {mae:.2f}")
             st.write(f"**R²:** {r2:.4f}")
 
-        # --- Visualization ---
+        # --- 6. Visualization ---
         st.markdown("### 📈 Actual vs Predicted Weekly Sales")
 
-        # Aggregate actual train sales
         train_agg = train_df.groupby("Date")["Weekly_Sales"].sum().reset_index()
-
         fig = go.Figure()
 
         # Actual train sales
