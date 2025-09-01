@@ -1356,8 +1356,8 @@ with tab4:
             @st.cache_resource
             def train_model_c(X, y):
                 model = XGBRegressor(
-                    n_estimators=3000,
-                    learning_rate=0.045,
+                    n_estimators=1500,
+                    learning_rate=0.07,
                     max_depth=6,
                     subsample=1,
                     colsample_bytree=0.85,
