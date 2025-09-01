@@ -1123,3 +1123,118 @@ with tab4:
             )
 
             st.plotly_chart(fig, use_container_width=True)
+        # ==============================
+        # TYPE B TRAINING
+        # ==============================
+        with type_b_train_tab:
+            st.markdown("### 📊 Training - Type B Stores")
+
+
+            # --- 0. Load B_train with caching ---
+            @st.cache_data
+            def load_b_train():
+                file_id = "10LeqAxi2fuU_rbV4rQWZlOpUUFlMK8Xn"
+                download_url = f"https://drive.google.com/uc?id={file_id}"
+                df = pd.read_csv(download_url)
+                df["Date"] = pd.to_datetime(df["Date"])
+                return df
+
+
+            B_train = load_b_train()
+
+            # --- Step 1: Preprocessing ---
+            df = B_train.copy()
+            df = df.dropna().reset_index(drop=True)
+
+            # --- Step 2: Train/Test Split ---
+            split_idx = int(len(df["Date"].unique()) * 0.8)
+            train_dates = df["Date"].unique()[:split_idx]
+            test_dates = df["Date"].unique()[split_idx:]
+
+            train = df[df["Date"].isin(train_dates)]
+            test = df[df["Date"].isin(test_dates)]
+
+            X_train = train.drop(columns=["Weekly_Sales", "Date"])
+            y_train = train["Weekly_Sales"]
+            X_test = test.drop(columns=["Weekly_Sales", "Date"])
+            y_test = test["Weekly_Sales"]
+
+            # --- Step 3: Outlier Handling ---
+            y_train = np.clip(y_train, y_train.quantile(0.01), y_train.quantile(0.99))
+
+
+            # --- Step 4: Train Model (cached) ---
+            @st.cache_resource
+            def train_model_b(X, y, X_val, y_val):
+                model = XGBRegressor(
+                    n_estimators=3000,
+                    learning_rate=0.045,
+                    max_depth=6,
+                    subsample=1,
+                    colsample_bytree=0.85,
+                    min_child_weight=5,
+                    random_state=42,
+                    n_jobs=-1
+                )
+                model.fit(X, y, eval_set=[(X_val, y_val)], verbose=False)
+                return model
+
+
+            with st.spinner("Training XGBoost model for Type B Stores..."):
+                model = train_model_b(X_train, y_train, X_test, y_test)
+            st.success("✅ Model training complete for Type B Stores!")
+
+            # --- Step 5: Predict & Evaluate ---
+            y_pred = model.predict(X_test)
+
+            rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+            mae = mean_absolute_error(y_test, y_pred)
+            r2 = r2_score(y_test, y_pred)
+
+            st.markdown("### 📈 Model Performance")
+            st.write(f"**RMSE:** {rmse:.2f}")
+            st.write(f"**MAE:** {mae:.2f}")
+            st.write(f"**R²:** {r2:.4f}")
+
+            # --- Step 6: Aggregated Visualization ---
+            agg_plot = test.copy()
+            agg_plot["Predicted"] = y_pred
+            agg_plot = agg_plot.groupby("Date")[["Weekly_Sales", "Predicted"]].sum().reset_index()
+
+            import plotly.graph_objects as go
+
+            fig = go.Figure()
+
+            # Actual sales
+            fig.add_trace(go.Scatter(
+                x=agg_plot["Date"],
+                y=agg_plot["Weekly_Sales"],
+                mode="lines+markers",
+                name="Actual",
+                line=dict(color="blue"),
+                marker=dict(size=6),
+                hovertemplate="Date: %{x}<br>Sales: %{y}<extra></extra>"
+            ))
+
+            # Predicted sales
+            fig.add_trace(go.Scatter(
+                x=agg_plot["Date"],
+                y=agg_plot["Predicted"],
+                mode="lines+markers",
+                name="Predicted",
+                line=dict(color="orange"),
+                marker=dict(size=6),
+                hovertemplate="Date: %{x}<br>Sales: %{y}<extra></extra>"
+            ))
+
+            fig.update_layout(
+                title="Actual vs Predicted Weekly Sales (Type B Stores)",
+                xaxis_title="Date",
+                yaxis_title="Weekly Sales",
+                hovermode="x unified",
+                template="plotly_white",
+                width=900,
+                height=500
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
