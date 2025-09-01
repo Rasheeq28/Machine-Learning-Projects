@@ -1126,8 +1126,11 @@ with tab4:
         # ==============================
         # TYPE B TRAINING
         # ==============================
+        # ==============================
+        # TYPE B TRAINING (with Holiday & Lag Features)
+        # ==============================
         with type_b_train_tab:
-            st.markdown("### 📊 Training - Type B Stores")
+            st.markdown("### 📊 Training - Type B Stores (with Holiday & Lag Features)")
 
 
             # --- 0. Load B_train with caching ---
@@ -1144,6 +1147,76 @@ with tab4:
 
             # --- Step 1: Preprocessing ---
             df = B_train.copy()
+
+
+            # Holiday classification
+            def get_holiday_type(date):
+                date = pd.to_datetime(date)
+                if date.month == 12 and date.day == 25:
+                    return "Christmas"
+                if date.month == 11 and date.weekday() == 3 and 22 <= date.day <= 28:
+                    return "Thanksgiving"
+                if date.month == 9 and date.weekday() == 0 and date.day <= 7:
+                    return "Labor Day"
+                if date.month == 2 and date.weekday() == 6 and date.day <= 7:
+                    return "SuperBowl"
+                return "None"
+
+
+            df["HolidayType"] = df["Date"].apply(get_holiday_type)
+            df = pd.get_dummies(df, columns=["HolidayType"], drop_first=True)
+
+            # Sort for lag features
+            df = df.sort_values(["Store", "Date"]).reset_index(drop=True)
+
+            # Regular lag & rolling features
+            lag_list = [1, 2, 4, 8]
+            rolling_windows = [2, 4, 8]
+
+            for lag in lag_list:
+                df[f"lag_{lag}"] = df.groupby("Store")["Weekly_Sales"].shift(lag)
+
+            for window in rolling_windows:
+                df[f"rolling_{window}"] = (
+                    df.groupby("Store")["Weekly_Sales"].shift(1).rolling(window).mean()
+                )
+
+            # Holiday-specific lag & rolling
+            holiday_lags = [1, 2, 4, 8, 12, 16]
+            holiday_windows = [2, 4, 8, 12]
+
+            for lag in holiday_lags:
+                df[f"holiday_lag_{lag}"] = (
+                        df["IsHoliday"] * df.groupby("Store")["Weekly_Sales"].shift(lag)
+                )
+
+            for window in holiday_windows:
+                df[f"holiday_rolling_{window}"] = (
+                        df["IsHoliday"] *
+                        df.groupby("Store")["Weekly_Sales"].shift(1).rolling(window).mean()
+                )
+
+            # Exponential weighted moving averages
+            df["holiday_ewm_8"] = (
+                    df["IsHoliday"] *
+                    df.groupby("Store")["Weekly_Sales"].shift(1).ewm(span=8, adjust=False).mean()
+            )
+            df["holiday_ewm_16"] = (
+                    df["IsHoliday"] *
+                    df.groupby("Store")["Weekly_Sales"].shift(1).ewm(span=16, adjust=False).mean()
+            )
+
+            # Previous holiday week effect
+            for holiday in ["Christmas", "Thanksgiving", "Labor Day", "SuperBowl"]:
+                col_name = f"HolidayType_{holiday}"
+                if col_name in df.columns:
+                    df[f"last_{holiday}"] = (
+                            df.groupby("Store")["Weekly_Sales"].shift(52) * df[col_name]
+                    )
+                else:
+                    df[f"last_{holiday}"] = 0
+
+            # Drop NA from shifting
             df = df.dropna().reset_index(drop=True)
 
             # --- Step 2: Train/Test Split ---
@@ -1188,53 +1261,3 @@ with tab4:
             y_pred = model.predict(X_test)
 
             rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-            mae = mean_absolute_error(y_test, y_pred)
-            r2 = r2_score(y_test, y_pred)
-
-            st.markdown("### 📈 Model Performance")
-            st.write(f"**RMSE:** {rmse:.2f}")
-            st.write(f"**MAE:** {mae:.2f}")
-            st.write(f"**R²:** {r2:.4f}")
-
-            # --- Step 6: Aggregated Visualization ---
-            agg_plot = test.copy()
-            agg_plot["Predicted"] = y_pred
-            agg_plot = agg_plot.groupby("Date")[["Weekly_Sales", "Predicted"]].sum().reset_index()
-
-            import plotly.graph_objects as go
-
-            fig = go.Figure()
-
-            # Actual sales
-            fig.add_trace(go.Scatter(
-                x=agg_plot["Date"],
-                y=agg_plot["Weekly_Sales"],
-                mode="lines+markers",
-                name="Actual",
-                line=dict(color="blue"),
-                marker=dict(size=6),
-                hovertemplate="Date: %{x}<br>Sales: %{y}<extra></extra>"
-            ))
-
-            # Predicted sales
-            fig.add_trace(go.Scatter(
-                x=agg_plot["Date"],
-                y=agg_plot["Predicted"],
-                mode="lines+markers",
-                name="Predicted",
-                line=dict(color="orange"),
-                marker=dict(size=6),
-                hovertemplate="Date: %{x}<br>Sales: %{y}<extra></extra>"
-            ))
-
-            fig.update_layout(
-                title="Actual vs Predicted Weekly Sales (Type B Stores)",
-                xaxis_title="Date",
-                yaxis_title="Weekly Sales",
-                hovermode="x unified",
-                template="plotly_white",
-                width=900,
-                height=500
-            )
-
-            st.plotly_chart(fig, use_container_width=True)
