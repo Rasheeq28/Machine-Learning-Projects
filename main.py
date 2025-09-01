@@ -639,125 +639,231 @@ with tab4:
         st.markdown("### Merged Stores, Features and Train, Cleaned data and encoded categorical columns")
 
     # ---------------- Testing ----------------
+    # with test_tab:
+    #     st.subheader("🧪 Testing Phase")
+    #
+    #
+    #     # --- 0. Load dataset with caching ---
+    #     @st.cache_data
+    #     def load_data():
+    #         file_id = "1GgRiYJe3rpXwojA75qeRuMNy-ZobpoC1"
+    #         download_url = f"https://drive.google.com/uc?id={file_id}"
+    #         df = pd.read_csv(download_url)
+    #         df["Date"] = pd.to_datetime(df["Date"])
+    #         return df
+    #
+    #
+    #     merged = load_data()
+    #
+    #     # --- 1. Split train and test ---
+    #     train_df = merged[merged["Date"] < "2012-11-02"].copy()
+    #     test_df = merged[merged["Date"] >= "2012-11-02"].copy()
+    #
+    #     features = [col for col in merged.columns if col not in ["Weekly_Sales", "Date"]]
+    #     X_train = train_df[features]
+    #     y_train = train_df["Weekly_Sales"]
+    #     X_test = test_df[features]
+    #
+    #
+    #     # --- 2. Train XGBoost model with caching ---
+    #     @st.cache_resource
+    #     def train_model(X, y):
+    #         model = XGBRegressor(
+    #             n_estimators=1000,
+    #             learning_rate=0.05,
+    #             max_depth=6,
+    #             subsample=0.8,
+    #             colsample_bytree=0.8,
+    #             random_state=42,
+    #             n_jobs=-1
+    #         )
+    #         model.fit(X, y)
+    #         return model
+    #
+    #
+    #     model = train_model(X_train, y_train)
+    #
+    #     # --- 3. Predict Weekly_Sales for test_df ---
+    #     test_df = test_df.copy()
+    #     test_df["Weekly_Sales_Predicted"] = model.predict(X_test)
+    #
+    #     # --- 4. Aggregate predicted weekly sales per Date ---
+    #     predicted_table = test_df.groupby("Date")["Weekly_Sales_Predicted"].sum().reset_index()
+    #     predicted_table = predicted_table.sort_values("Date").reset_index(drop=True)
+    #
+    #     st.markdown("### 📅 Predicted Weekly Sales per Date")
+    #     st.dataframe(predicted_table)
+    #
+    #     # --- 5. Evaluate if actuals exist ---
+    #     if "Weekly_Sales" in test_df.columns and test_df["Weekly_Sales"].notna().any():
+    #         y_true = test_df["Weekly_Sales"]
+    #         y_pred = test_df["Weekly_Sales_Predicted"]
+    #
+    #         rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+    #         mae = mean_absolute_error(y_true, y_pred)
+    #         r2 = r2_score(y_true, y_pred)
+    #
+    #         st.markdown("### 📊 Model Performance on Test Set")
+    #         st.write(f"**RMSE:** {rmse:.2f}")
+    #         st.write(f"**MAE:** {mae:.2f}")
+    #         st.write(f"**R²:** {r2:.4f}")
+    #
+    #     # --- 6. Visualization ---
+    #     st.markdown("### 📈 Actual vs Predicted Weekly Sales")
+    #
+    #     train_agg = train_df.groupby("Date")["Weekly_Sales"].sum().reset_index()
+    #     fig = go.Figure()
+    #
+    #     # Actual train sales
+    #     fig.add_trace(go.Scatter(
+    #         x=train_agg["Date"],
+    #         y=train_agg["Weekly_Sales"],
+    #         mode='lines+markers',
+    #         name='Actual (Train)',
+    #         line=dict(color='blue'),
+    #         marker=dict(size=6),
+    #         hovertemplate='Date: %{x}<br>Sales: %{y}<extra></extra>'
+    #     ))
+    #
+    #     # Predicted test sales
+    #     fig.add_trace(go.Scatter(
+    #         x=predicted_table["Date"],
+    #         y=predicted_table["Weekly_Sales_Predicted"],
+    #         mode='lines+markers',
+    #         name='Predicted (Test)',
+    #         line=dict(color='orange'),
+    #         marker=dict(size=6),
+    #         hovertemplate='Date: %{x}<br>Predicted Sales: %{y}<extra></extra>'
+    #     ))
+    #
+    #
+    #     fig.update_layout(
+    #         title="Actual vs Predicted Weekly Sales",
+    #         xaxis_title="Date",
+    #         yaxis_title="Weekly Sales",
+    #         template="plotly_white",
+    #         hovermode="x unified"
+    #     )
+    #
+    #     st.plotly_chart(fig, use_container_width=True)
     with test_tab:
         st.subheader("🧪 Testing Phase")
 
+        # --- Create subtabs for different store types ---
+        type_a_tab, type_b_tab, type_c_tab = st.tabs(["Type A Stores", "Type B Stores", "Type C Stores"])
 
-        # --- 0. Load dataset with caching ---
-        @st.cache_data
-        def load_data():
-            file_id = "1GgRiYJe3rpXwojA75qeRuMNy-ZobpoC1"
-            download_url = f"https://drive.google.com/uc?id={file_id}"
-            df = pd.read_csv(download_url)
-            df["Date"] = pd.to_datetime(df["Date"])
-            return df
+        # ---------------- Type A Stores ----------------
+        with type_a_tab:
+            st.markdown("### Testing for Type A Stores")
 
 
-        merged = load_data()
-
-        # --- 1. Split train and test ---
-        train_df = merged[merged["Date"] < "2012-11-02"].copy()
-        test_df = merged[merged["Date"] >= "2012-11-02"].copy()
-
-        features = [col for col in merged.columns if col not in ["Weekly_Sales", "Date"]]
-        X_train = train_df[features]
-        y_train = train_df["Weekly_Sales"]
-        X_test = test_df[features]
+            # --- 0. Load dataset with caching ---
+            @st.cache_data
+            def load_data():
+                file_id = "1GgRiYJe3rpXwojA75qeRuMNy-ZobpoC1"
+                download_url = f"https://drive.google.com/uc?id={file_id}"
+                df = pd.read_csv(download_url)
+                df["Date"] = pd.to_datetime(df["Date"])
+                return df
 
 
-        # --- 2. Train XGBoost model with caching ---
-        @st.cache_resource
-        def train_model(X, y):
-            model = XGBRegressor(
-                n_estimators=1000,
-                learning_rate=0.05,
-                max_depth=6,
-                subsample=0.8,
-                colsample_bytree=0.8,
-                random_state=42,
-                n_jobs=-1
-            )
-            model.fit(X, y)
-            return model
+            merged = load_data()
+
+            # Filter for Type A stores if needed
+            merged_a = merged[merged["StoreType"] == "A"].copy()
+
+            # --- 1. Split train and test ---
+            train_df = merged_a[merged_a["Date"] < "2012-11-02"].copy()
+            test_df = merged_a[merged_a["Date"] >= "2012-11-02"].copy()
+
+            features = [col for col in merged_a.columns if col not in ["Weekly_Sales", "Date"]]
+            X_train = train_df[features]
+            y_train = train_df["Weekly_Sales"]
+            X_test = test_df[features]
 
 
-        model = train_model(X_train, y_train)
+            # --- 2. Train XGBoost model with caching ---
+            @st.cache_resource
+            def train_model(X, y):
+                model = XGBRegressor(
+                    n_estimators=1000,
+                    learning_rate=0.05,
+                    max_depth=6,
+                    subsample=0.8,
+                    colsample_bytree=0.8,
+                    random_state=42,
+                    n_jobs=-1
+                )
+                model.fit(X, y)
+                return model
 
-        # --- 3. Predict Weekly_Sales for test_df ---
-        test_df = test_df.copy()
-        test_df["Weekly_Sales_Predicted"] = model.predict(X_test)
 
-        # --- 4. Aggregate predicted weekly sales per Date ---
-        predicted_table = test_df.groupby("Date")["Weekly_Sales_Predicted"].sum().reset_index()
-        predicted_table = predicted_table.sort_values("Date").reset_index(drop=True)
+            with st.spinner("Training XGBoost model for Type A Stores..."):
+                model = train_model(X_train, y_train)
+            st.success("Model training complete!")
 
-        st.markdown("### 📅 Predicted Weekly Sales per Date")
-        st.dataframe(predicted_table)
+            # --- 3. Predict Weekly_Sales for test_df ---
+            test_df = test_df.copy()
+            test_df["Weekly_Sales_Predicted"] = model.predict(X_test)
 
-        # --- 5. Evaluate if actuals exist ---
-        if "Weekly_Sales" in test_df.columns and test_df["Weekly_Sales"].notna().any():
-            y_true = test_df["Weekly_Sales"]
-            y_pred = test_df["Weekly_Sales_Predicted"]
+            # --- 4. Aggregate predicted weekly sales per Date ---
+            predicted_table = test_df.groupby("Date")["Weekly_Sales_Predicted"].sum().reset_index()
+            predicted_table = predicted_table.sort_values("Date").reset_index(drop=True)
 
-            rmse = np.sqrt(mean_squared_error(y_true, y_pred))
-            mae = mean_absolute_error(y_true, y_pred)
-            r2 = r2_score(y_true, y_pred)
+            st.markdown("### 📅 Predicted Weekly Sales per Date")
+            st.dataframe(predicted_table)
 
-            st.markdown("### 📊 Model Performance on Test Set")
-            st.write(f"**RMSE:** {rmse:.2f}")
-            st.write(f"**MAE:** {mae:.2f}")
-            st.write(f"**R²:** {r2:.4f}")
+            # --- 5. Evaluate if actuals exist ---
+            if "Weekly_Sales" in test_df.columns and test_df["Weekly_Sales"].notna().any():
+                y_true = test_df["Weekly_Sales"]
+                y_pred = test_df["Weekly_Sales_Predicted"]
 
-        # --- 6. Visualization ---
-        st.markdown("### 📈 Actual vs Predicted Weekly Sales")
+                rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+                mae = mean_absolute_error(y_true, y_pred)
+                r2 = r2_score(y_true, y_pred)
 
-        train_agg = train_df.groupby("Date")["Weekly_Sales"].sum().reset_index()
-        fig = go.Figure()
+                st.markdown("### 📊 Model Performance on Test Set")
+                st.write(f"**RMSE:** {rmse:.2f}")
+                st.write(f"**MAE:** {mae:.2f}")
+                st.write(f"**R²:** {r2:.4f}")
 
-        # Actual train sales
-        fig.add_trace(go.Scatter(
-            x=train_agg["Date"],
-            y=train_agg["Weekly_Sales"],
-            mode='lines+markers',
-            name='Actual (Train)',
-            line=dict(color='blue'),
-            marker=dict(size=6),
-            hovertemplate='Date: %{x}<br>Sales: %{y}<extra></extra>'
-        ))
+            # --- 6. Visualization ---
+            st.markdown("### 📈 Actual vs Predicted Weekly Sales")
 
-        # Predicted test sales
-        fig.add_trace(go.Scatter(
-            x=predicted_table["Date"],
-            y=predicted_table["Weekly_Sales_Predicted"],
-            mode='lines+markers',
-            name='Predicted (Test)',
-            line=dict(color='orange'),
-            marker=dict(size=6),
-            hovertemplate='Date: %{x}<br>Predicted Sales: %{y}<extra></extra>'
-        ))
+            train_agg = train_df.groupby("Date")["Weekly_Sales"].sum().reset_index()
+            fig = go.Figure()
 
-        # Actual test sales (if available)
-        if "Weekly_Sales" in test_df.columns:
-            test_agg = test_df.groupby("Date")["Weekly_Sales"].sum().reset_index()
+            # Actual train sales
             fig.add_trace(go.Scatter(
-                x=test_agg["Date"],
-                y=test_agg["Weekly_Sales"],
+                x=train_agg["Date"],
+                y=train_agg["Weekly_Sales"],
                 mode='lines+markers',
-                name='Actual (Test)',
-                line=dict(color='green'),
+                name='Actual (Train)',
+                line=dict(color='blue'),
                 marker=dict(size=6),
                 hovertemplate='Date: %{x}<br>Sales: %{y}<extra></extra>'
             ))
 
-        fig.update_layout(
-            title="Actual vs Predicted Weekly Sales",
-            xaxis_title="Date",
-            yaxis_title="Weekly Sales",
-            template="plotly_white",
-            hovermode="x unified"
-        )
+            # Predicted test sales
+            fig.add_trace(go.Scatter(
+                x=predicted_table["Date"],
+                y=predicted_table["Weekly_Sales_Predicted"],
+                mode='lines+markers',
+                name='Predicted (Test)',
+                line=dict(color='orange'),
+                marker=dict(size=6),
+                hovertemplate='Date: %{x}<br>Predicted Sales: %{y}<extra></extra>'
+            ))
 
-        st.plotly_chart(fig, use_container_width=True)
+            fig.update_layout(
+                title="Actual vs Predicted Weekly Sales (Type A Stores)",
+                xaxis_title="Date",
+                yaxis_title="Weekly Sales",
+                template="plotly_white",
+                hovermode="x unified"
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
 
     # ---------------- Training ----------------
     with train_tab:
