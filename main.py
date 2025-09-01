@@ -643,7 +643,7 @@ with tab4:
         st.subheader("🧪 Testing Phase")
 
         # --- Load dataset ---
-        merged = pd.read_csv("merged.csv")
+        merged = pd.read_csv("data/merged.csv")
         merged["Date"] = pd.to_datetime(merged["Date"])
 
         # --- 1. Split train and test ---
