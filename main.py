@@ -1261,3 +1261,53 @@ with tab4:
             y_pred = model.predict(X_test)
 
             rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+            mae = mean_absolute_error(y_test, y_pred)
+            r2 = r2_score(y_test, y_pred)
+
+            st.markdown("### 📈 Model Performance")
+            st.write(f"**RMSE:** {rmse:.2f}")
+            st.write(f"**MAE:** {mae:.2f}")
+            st.write(f"**R²:** {r2:.4f}")
+
+            # --- Step 6: Aggregated Visualization ---
+            agg_plot = test.copy()
+            agg_plot["Predicted"] = y_pred
+            agg_plot = agg_plot.groupby("Date")[["Weekly_Sales", "Predicted"]].sum().reset_index()
+
+            import plotly.graph_objects as go
+
+            fig = go.Figure()
+
+            # Actual sales
+            fig.add_trace(go.Scatter(
+                x=agg_plot["Date"],
+                y=agg_plot["Weekly_Sales"],
+                mode="lines+markers",
+                name="Actual",
+                line=dict(color="blue"),
+                marker=dict(size=6),
+                hovertemplate="Date: %{x}<br>Sales: %{y}<extra></extra>"
+            ))
+
+            # Predicted sales
+            fig.add_trace(go.Scatter(
+                x=agg_plot["Date"],
+                y=agg_plot["Predicted"],
+                mode="lines+markers",
+                name="Predicted",
+                line=dict(color="orange"),
+                marker=dict(size=6),
+                hovertemplate="Date: %{x}<br>Sales: %{y}<extra></extra>"
+            ))
+
+            fig.update_layout(
+                title="Actual vs Predicted Weekly Sales (Type B Stores with Holiday & Lag Features)",
+                xaxis_title="Date",
+                yaxis_title="Weekly Sales",
+                hovermode="x unified",
+                template="plotly_white",
+                width=900,
+                height=500
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
