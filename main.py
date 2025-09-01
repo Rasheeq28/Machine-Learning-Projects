@@ -770,13 +770,13 @@ with tab4:
             merged = load_data()
 
             # Filter for Type A stores if needed
-            merged_a = merged[merged["StoreType"] == "A"].copy()
+            # merged_a = merged[merged["StoreType"] == "A"].copy()
 
             # --- 1. Split train and test ---
-            train_df = merged_a[merged_a["Date"] < "2012-11-02"].copy()
-            test_df = merged_a[merged_a["Date"] >= "2012-11-02"].copy()
+            train_df = merged[merged["Date"] < "2012-11-02"].copy()
+            test_df = merged[merged["Date"] >= "2012-11-02"].copy()
 
-            features = [col for col in merged_a.columns if col not in ["Weekly_Sales", "Date"]]
+            features = [col for col in merged.columns if col not in ["Weekly_Sales", "Date"]]
             X_train = train_df[features]
             y_train = train_df["Weekly_Sales"]
             X_test = test_df[features]
