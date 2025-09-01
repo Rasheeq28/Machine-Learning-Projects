@@ -643,7 +643,12 @@ with tab4:
         st.subheader("🧪 Testing Phase")
 
         # --- Load dataset ---
-        merged = pd.read_csv("data/merged.csv")
+        # File ID from your link
+        file_id = "1GgRiYJe3rpXwojA75qeRuMNy-ZobpoC1"
+        download_url = f"https://drive.google.com/uc?id={file_id}"
+
+        # Load CSV into pandas
+        merged = pd.read_csv(download_url)
         merged["Date"] = pd.to_datetime(merged["Date"])
 
         # --- 1. Split train and test ---
