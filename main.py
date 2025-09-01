@@ -638,7 +638,7 @@ with tab4:
     with eda_tab:
         st.markdown("### Merged Stores, Features and Train, Cleaned data and encoded categorical columns")
 
-        mergedtrain = pd.read_csv("mergedtrain.csv")
+        mergedtrain = pd.read_csv(r"C:\Users\rashe\PycharmProjects\student_score_prediction\mergedtrain.csv")
 
         # Show preview
         st.write("#### Preview of Merged Train Data")
