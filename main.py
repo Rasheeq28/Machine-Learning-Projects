@@ -638,63 +638,116 @@ with tab4:
     with eda_tab:
         st.markdown("### Merged Stores, Features and Train, Cleaned data and encoded categorical columns")
 
-        mergedtrain = pd.read_csv(r"C:\Users\rashe\PycharmProjects\student_score_prediction\mergedtrain.csv")
-
-        # Show preview
-        st.write("#### Preview of Merged Train Data")
-        st.dataframe(mergedtrain.head())
-
-        st.markdown("### Merged Stores, Features and Test data")
-
-        # --- EDA on numerical columns ---
-        st.subheader("Exploratory Data Analysis (Numerical Columns)")
-        num_cols = mergedtrain.select_dtypes(include=['int64', 'float64']).columns.tolist()
-
-        # Summary stats
-        st.write("#### Summary Statistics")
-        st.dataframe(mergedtrain[num_cols].describe().T)
-
-        # Correlation heatmap
-        st.write("#### Correlation Heatmap")
-        corr = mergedtrain[num_cols].corr()
-        fig_corr = px.imshow(
-            corr,
-            text_auto=True,
-            aspect="auto",
-            color_continuous_scale="RdBu_r",
-            title="Correlation Heatmap (Numerical Features)"
-        )
-        st.plotly_chart(fig_corr, use_container_width=True)
-
-        # Distribution plots for numerical features
-        st.write("#### Distributions of Numerical Columns")
-        for col in num_cols:
-            fig = px.histogram(
-                mergedtrain,
-                x=col,
-                nbins=30,
-                marginal="box",
-                title=f"Distribution of {col}"
-            )
-            st.plotly_chart(fig, use_container_width=True)
-
-        # Interactive scatter plots
-        st.write("#### Scatter Plots (Numeric Relationships)")
-        if "Weekly_Sales" in mergedtrain.columns:
-            for col in [c for c in num_cols if c != "Weekly_Sales"]:
-                fig = px.scatter(
-                    mergedtrain,
-                    x=col,
-                    y="Weekly_Sales",
-                    trendline="ols",
-                    title=f"{col} vs Weekly Sales"
-                )
-                st.plotly_chart(fig, use_container_width=True)
-
     # ---------------- Testing ----------------
     with test_tab:
         st.subheader("🧪 Testing Phase")
-        st.write("Here you can implement testing of models using hold-out / unseen datasets.")
+
+        # --- Load dataset ---
+        merged = pd.read_csv("merged.csv")
+        merged["Date"] = pd.to_datetime(merged["Date"])
+
+        # --- 1. Split train and test ---
+        train_df = merged[merged["Date"] < "2012-11-02"].copy()
+        test_df = merged[merged["Date"] >= "2012-11-02"].copy()
+
+        features = [col for col in merged.columns if col not in ["Weekly_Sales", "Date"]]
+
+        X_train = train_df[features]
+        y_train = train_df["Weekly_Sales"]
+
+        X_test = test_df[features]
+
+        # --- 2. Initialize and fit XGBoost ---
+        model = XGBRegressor(
+            n_estimators=1000,
+            learning_rate=0.05,
+            max_depth=6,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            random_state=42,
+            n_jobs=-1
+        )
+
+        model.fit(X_train, y_train)
+
+        # --- 3. Predict Weekly_Sales for test_df ---
+        preds = model.predict(X_test)
+        test_df = test_df.copy()
+        test_df["Weekly_Sales_Predicted"] = preds
+
+        # --- 4. Aggregate predicted weekly sales per Date ---
+        predicted_table = test_df.groupby("Date")["Weekly_Sales_Predicted"].sum().reset_index()
+        predicted_table = predicted_table.sort_values("Date").reset_index(drop=True)
+
+        st.markdown("### 📅 Predicted Weekly Sales per Date")
+        st.dataframe(predicted_table)
+
+        # --- 5. Optional: evaluate if actuals exist ---
+        if "Weekly_Sales" in test_df.columns and test_df["Weekly_Sales"].notna().any():
+            y_true = test_df["Weekly_Sales"]
+            y_pred = test_df["Weekly_Sales_Predicted"]
+
+            rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+            mae = mean_absolute_error(y_true, y_pred)
+            r2 = r2_score(y_true, y_pred)
+
+            st.markdown("### 📊 Model Performance on Test Set")
+            st.write(f"**RMSE:** {rmse:.2f}")
+            st.write(f"**MAE:** {mae:.2f}")
+            st.write(f"**R²:** {r2:.4f}")
+
+        # --- Visualization ---
+        st.markdown("### 📈 Actual vs Predicted Weekly Sales")
+
+        # Aggregate actual train sales
+        train_agg = train_df.groupby("Date")["Weekly_Sales"].sum().reset_index()
+
+        fig = go.Figure()
+
+        # Actual train sales
+        fig.add_trace(go.Scatter(
+            x=train_agg["Date"],
+            y=train_agg["Weekly_Sales"],
+            mode='lines+markers',
+            name='Actual (Train)',
+            line=dict(color='blue'),
+            marker=dict(size=6),
+            hovertemplate='Date: %{x}<br>Sales: %{y}<extra></extra>'
+        ))
+
+        # Predicted test sales
+        fig.add_trace(go.Scatter(
+            x=predicted_table["Date"],
+            y=predicted_table["Weekly_Sales_Predicted"],
+            mode='lines+markers',
+            name='Predicted (Test)',
+            line=dict(color='orange'),
+            marker=dict(size=6),
+            hovertemplate='Date: %{x}<br>Predicted Sales: %{y}<extra></extra>'
+        ))
+
+        # Actual test sales (if available)
+        if "Weekly_Sales" in test_df.columns:
+            test_agg = test_df.groupby("Date")["Weekly_Sales"].sum().reset_index()
+            fig.add_trace(go.Scatter(
+                x=test_agg["Date"],
+                y=test_agg["Weekly_Sales"],
+                mode='lines+markers',
+                name='Actual (Test)',
+                line=dict(color='green'),
+                marker=dict(size=6),
+                hovertemplate='Date: %{x}<br>Sales: %{y}<extra></extra>'
+            ))
+
+        fig.update_layout(
+            title="Actual vs Predicted Weekly Sales",
+            xaxis_title="Date",
+            yaxis_title="Weekly Sales",
+            template="plotly_white",
+            hovermode="x unified"
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
 
     # ---------------- Training ----------------
     with train_tab:
