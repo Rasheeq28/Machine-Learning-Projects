@@ -1322,7 +1322,8 @@ with tab4:
             # --- Step 0: Load C_train ---
             @st.cache_data
             def load_c_train():
-                file_id = "1TPms7rHBbe6s7GmnoIiKC18GxS8wU6QZ"
+
+                file_id = "14ELL-iZ6FbSUSlrbyvtwNM0bqEpmJLRh"
                 download_url = f"https://drive.google.com/uc?id={file_id}"
                 df = pd.read_csv(download_url)
                 df["Date"] = pd.to_datetime(df["Date"])
