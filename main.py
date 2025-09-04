@@ -373,8 +373,8 @@ with tab2:
 with tab3:
     st.subheader("🏦 Loan Approval Prediction")
 
-    dataset_tab, model_tab, dtree_tab, explanation_tab = st.tabs([
-        "📂 Dataset", "📈 Logistic Regression Model", "🌳 Decision Tree Model", "📝 Explanation"
+    dataset_tab, model_tab, dtree_tab = st.tabs([
+        "📂 Dataset", "📈 Logistic Regression Model", "🌳 Decision Tree Model"
     ])
 
     # --- Dataset Subtab ---
@@ -632,12 +632,9 @@ with tab4:
     st.subheader("📈 Walmart Sales Forecasting")
 
     # Create subtabs
-    eda_tab, test_tab, train_tab = st.tabs(["📊 EDA and Merging", "🧪 Testing", "🏋️ Training"])
+    test_tab, train_tab = st.tabs(["🧪 Testing", "🏋️ Training"])
 
     # ---------------- EDA and Merging ----------------
-    with eda_tab:
-        st.markdown("### Merged Stores, Features and Train, Cleaned data and encoded categorical columns")
-
     with test_tab:
         st.subheader("🧪 Testing Phase")
 
